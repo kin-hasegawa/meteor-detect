@@ -70,13 +70,16 @@ class AtomCam:
         # The Hough-transform algo:
         return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=30, maxLineGap=5)
 
-    def streaming(self, sec):
+    def streaming(self, exposure, no_window):
         '''
         ストリーミング再生
+          exposure: 比較明合成する時間(sec)
+          no_window: True .. 画面表示しない
+
           return 0 終了
           return 1 異常終了
         '''
-        num_frames = int(self.FPS * sec)
+        num_frames = int(self.FPS * exposure)
         composite_img = None
 
         while(True):
@@ -114,8 +117,9 @@ class AtomCam:
                 diff_img = self.brightest(self.diff(img_list))
                 try:
                     blur_img = cv2.medianBlur(composite_img, 3)
-                    cv2.imshow('ATOM Cam2 x {} frames '.format(number), blur_img)
-                    # cv2.imshow('ATOM Cam2 x {} frames '.format(number), composite_img)
+                    if not no_window:
+                        cv2.imshow('ATOM Cam2 x {} frames '.format(number), blur_img)
+                        # cv2.imshow('ATOM Cam2 x {} frames '.format(number), composite_img)
                     if self.detect(diff_img) is not None:
                         now = datetime.datetime.now()
                         obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
@@ -130,6 +134,9 @@ class AtomCam:
 
 
 class DetectMeteor():
+    '''
+    動画ファイル(MP4)からの流星の検出
+    '''
     def __init__(self, file_path):
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
@@ -244,7 +251,7 @@ def detect_meteor(date, hour=None, minute=None, sec=1):
             detecter.meteor(sec)
 
 
-def streaming(url, exposure):
+def streaming(url, exposure, no_window):
     print("-----streaming-----")
     if url:
         atom = AtomCam(url)
@@ -252,7 +259,7 @@ def streaming(url, exposure):
             return
 
     while True:
-        sts = atom.streaming(exposure)
+        sts = atom.streaming(exposure, no_window)
         if sts == 1:
             if Path(url).suffix == '.mp4':
                 # MP4ファイルの場合は終了する。
@@ -267,21 +274,26 @@ def streaming(url, exposure):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+
+    # ストリーミングモードのオプション
     parser.add_argument('-u', '--url', default=ATOM_CAM_RTSP, help='RTSPのURL、または動画(MP4)ファイル')
-    parser.add_argument('-e', '--exposure', type=int, default=1, help='露出時間(second)')
-    # parser.add_argument('--meteor', action='store_true', help='流星検出')
+    parser.add_argument('-n', '--no_window', action='store_true', help='画面非表示')
 
     # 以下はATOM Cam形式のディレクトリからデータを読む場合のオプション
     parser.add_argument('-d', '--date', default=None, help="Date in 'yyyymmdd' format (JST)")
     parser.add_argument('--hour', default=None, help="Hour in 'hh' format (JST)")
     parser.add_argument('-m', '--minute', default=None, help="minute in mm (optional)")
 
-    # parser.add_argument('-o', '--output', default=None, help="output filename")
+    # 共通オプション
+    parser.add_argument('-e', '--exposure', type=int, default=1, help='露出時間(second)')
+
+    # parser.add_argument('-o', '--output', default=None, help="output directory pathname")
 
     args = parser.parse_args()
 
     if args.date:
-        # 日付がある場合はファイル再生
+        # 日付がある場合はファイル(ATOMCam形式のファイル)から流星検出
         detect_meteor(args.date, args.hour, args.minute, args.exposure)
     else:
-        streaming(args.url, args.exposure)
+        # ストリーミング/動画(MP4)の再生
+        streaming(args.url, args.exposure, args.no_window)
