@@ -109,7 +109,8 @@ class AtomCam:
 
             number = len(img_list)
 
-            if number > 1:
+            if number > 2:
+                # 差分間で比較明合成を取るために最低3フレームが必要。
                 # 画像のコンポジット(単純スタック)
                 #composite_img = self.composite(img_list)
                 # 画像のコンポジット(比較明合成)
