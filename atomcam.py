@@ -75,46 +75,6 @@ class AtomCam:
         self.capture.release()
         cv2.destroyAllWindows()
 
-    '''
-    def composite(self, list_images):
-        # 画像リストの合成
-        equal_fraction = 1.0 / (len(list_images))
-
-        output = np.zeros_like(list_images[0])
-
-        for img in list_images:
-            output = output + img * equal_fraction
-
-        output = output.astype(np.uint8)
-
-        return output
-
-    def brightest(self, img_list):
-        output = img_list[0]
-
-        for img in img_list[1:]:
-            output = np.where(output > img, output, img)
-
-        return output
-
-    def diff(self, img_list):
-        diff_list = []
-        for img1, img2 in zip(img_list[:-2], img_list[1:]):
-            img1 = cv2.bitwise_or(img1, self.mask)
-            img2 = cv2.bitwise_or(img2, self.mask)
-            diff_list.append(cv2.subtract(img1, img2))
-
-        return diff_list
-
-    def detect(self, img):
-        blur_size = (5, 5)
-        blur = cv2.GaussianBlur(img, blur_size, 0)
-        canny = cv2.Canny(blur, 100, 200, 3)
-
-        # The Hough-transform algo:
-        return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=30, maxLineGap=5)
-    '''
-
     def streaming(self, exposure, no_window, output):
         '''
         ストリーミング再生
@@ -174,7 +134,7 @@ class AtomCam:
                         cv2.imshow('ATOM Cam2 x {} frames '.format(number), blur_img)
                         # cv2.imshow('ATOM Cam2 x {} frames '.format(number), composite_img)
                     if detect(diff_img) is not None:
-                        now = datetime.datetime.now()
+                        now = datetime.now()
                         obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
                         print('{} A possible meteor was detected.'.format(obs_time))
                         filename = "{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
