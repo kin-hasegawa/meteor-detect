@@ -99,6 +99,19 @@ $ sudo apt install wget
 20220104/02/*.mp4
 ```
 
+## 流星検出方法
+
+1. 流星が流れる時間程度(1~2秒)で比較明合成を行う。
+1. 比較明合成した画像の差分を取り、移動天体を抽出する。
+1. 移動天体の中から流星と思われる直線状のパターンを検出する。
+1. 検出メッセージ(時刻)を出力し、その比較明合成画像を保存する。
+
+流星と飛行機、人工衛星の区別がまだ十分にできていない。また、東京の空ではS/Nが悪いため暗い流星は検出できない。
+
+画像からの流星の検出方法は下記のサイトで紹介されている方法を参考にした。
+
+[D64.NL – METEOR DETECTING PROJECT](https://www.meteornews.net/2020/05/05/d64-nl-meteor-detecting-project/)
+
 ## 使い方
 
 ソースコードの下記の行を自分のATOM CamのIPに合わせて修正してください。
@@ -134,7 +147,21 @@ optional arguments:
 
 実行例
 ```
-% ./atomcam.py -u 
+% ./atomcam.py
+```
+
+デフォルトのRTSPサーバーからストリーミングサーバーからデータを読み込み、流星検出を試みる。
+
+以下はコマンドの出力例。この例で見つかっているのは飛行機。
+
+```
+-----streaming-----
+2022/01/15 00:19:31 A possible meteor was detected.
+2022/01/15 00:19:34 A possible meteor was detected.
+2022/01/15 00:19:37 A possible meteor was detected.
+2022/01/15 00:19:39 A possible meteor was detected.
+2022/01/15 00:19:42 A possible meteor was detected.
+...
 ```
 
 ### 動画ファイル(MP4)から流星検出を行う
