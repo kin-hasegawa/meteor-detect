@@ -157,7 +157,7 @@ class DetectMeteor():
         self.FPS = 15
         date_element = file_path.split('/')
         self.date_dir = date_element[-3]
-f        self.date = datetime.strptime(self.date_dir, "%Y%m%d")
+        self.date = datetime.strptime(self.date_dir, "%Y%m%d")
 
         self.hour = date_element[-2]
         self.minute = date_element[-1].split('.')[0]
@@ -176,6 +176,8 @@ f        self.date = datetime.strptime(self.date_dir, "%Y%m%d")
             output_dir.mkdir(exist_ok=True)
         else:
             output_dir = Path('.')
+
+        print(output_dir)
 
         num_frames = int(self.FPS * exposure)
         composite_img = None
@@ -234,6 +236,8 @@ def detect_meteor(args):
         if args.minute:
             file_path = Path(data_dir, "{}.mp4".format(args.minute))
 
+    print(data_dir)
+
     if args.minute:
         # 単体のmp4ファイルの処理
         print(file_path)
@@ -245,7 +249,7 @@ def detect_meteor(args):
         for file_path in sorted(Path(data_dir).glob("*.mp4")):
             print(Path(file_path))
             detecter = DetectMeteor(str(file_path))
-            detecter.meteor(args.exposure)
+            detecter.meteor(args.exposure, args.output)
 
 
 def streaming(args):
