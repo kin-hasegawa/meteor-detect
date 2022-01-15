@@ -13,7 +13,7 @@ from imutils.video import FileVideoStream
 # 行毎に標準出力のバッファをflushする。
 sys.stdout.reconfigure(line_buffering=True)
 
-
+# 自分の環境のATOM CamのIPに修正してください。
 ATOM_CAM_RTSP = 'rtsp://192.168.2.111:8554/unicast'
 
 
@@ -157,7 +157,7 @@ class DetectMeteor():
         self.FPS = 15
         date_element = file_path.split('/')
         self.date_dir = date_element[-3]
-        self.date = datetime.strptime(self.date_dir, "%Y%m%d")
+f        self.date = datetime.strptime(self.date_dir, "%Y%m%d")
 
         self.hour = date_element[-2]
         self.minute = date_element[-1].split('.')[0]
