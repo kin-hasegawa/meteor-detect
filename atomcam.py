@@ -2,7 +2,7 @@
 
 from pathlib import Path
 import sys
-import re
+import traceback
 from datetime import datetime
 import time
 import argparse
@@ -101,7 +101,7 @@ class AtomCam:
                 try:
                     ret, frame = self.capture.read()
                 except Exception as e:
-                    print(str(e))
+                    print(e, file=sys.stderr)
                     continue
 
                 key = chr(cv2.waitKey(1) & 0xFF)
@@ -141,7 +141,7 @@ class AtomCam:
                         path_name = str(Path(output_dir, filename + ".jpg"))
                         cv2.imwrite(path_name, composite_img)
                 except Exception as e:
-                    print(str(e), file=sys.stderr)
+                    print(e, file=sys.stderr)
             else:
                 print('No data: communcation lost? or end of data', file=sys.stderr)
                 return 1
@@ -192,7 +192,7 @@ class DetectMeteor():
                     else:
                         continue
                 except Exception as e:
-                    print(str(e))
+                    print(e, file=sys.stderr)
                     continue
 
                 img_list.append(frame)
@@ -214,12 +214,13 @@ class DetectMeteor():
                         # cv2.imwrite(filename + ".jpg", diff_img)
                         cv2.imwrite(path_name, composite_img)
                 except Exception as e:
-                    print(str(e, file=sys.stderr))
+                    # print(traceback.format_exc(), file=sys.stderr)
+                    print(e, file=sys.stderr)
+
             else:
                 return 1
 
 
-# def detect_meteor(date, hour=None, minute=None, sec=1):
 def detect_meteor(args):
     '''
     動画ファイルからの流星の検出
@@ -236,7 +237,7 @@ def detect_meteor(args):
         if args.minute:
             file_path = Path(data_dir, "{}.mp4".format(args.minute))
 
-    print(data_dir)
+    # print(data_dir)
 
     if args.minute:
         # 単体のmp4ファイルの処理
@@ -289,8 +290,6 @@ if __name__ == '__main__':
     # 共通オプション
     parser.add_argument('-e', '--exposure', type=int, default=1, help='露出時間(second)')
     parser.add_argument('-o', '--output', default=None, help='検出画像の出力先ディレクトリ名')
-
-    # parser.add_argument('-o', '--output', default=None, help="output directory pathname")
 
     args = parser.parse_args()
 
