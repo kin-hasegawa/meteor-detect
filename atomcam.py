@@ -225,7 +225,6 @@ def detect_meteor(args):
     '''
     動画ファイルからの流星の検出
     '''
-    print("-----detect meteors-----")
     if args.input:
         input_dir = Path(args.input)
     else:
@@ -254,7 +253,6 @@ def detect_meteor(args):
 
 
 def streaming(args):
-    print("-----streaming-----")
     if args.url:
         atom = AtomCam(args.url)
         if not atom.capture.isOpened():
