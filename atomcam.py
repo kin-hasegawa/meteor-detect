@@ -2,7 +2,6 @@
 
 from pathlib import Path
 import sys
-import traceback
 from datetime import datetime
 import time
 import argparse
@@ -14,7 +13,8 @@ from imutils.video import FileVideoStream
 sys.stdout.reconfigure(line_buffering=True)
 
 # 自分の環境のATOM CamのIPに修正してください。
-ATOM_CAM_RTSP = 'rtsp://192.168.2.111:8554/unicast'
+ATOM_CAM_IP = "192.168.2.111"
+ATOM_CAM_RTSP = "rtsp://{}:8554/unicast".format(ATOM_CAM_IP)
 
 
 def composite(list_images):
@@ -95,6 +95,10 @@ class AtomCam:
         composite_img = None
 
         while(True):
+            # 現在時刻を取得
+            now = datetime.now()
+            obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
+
             key = None
             img_list = []
             for n in range(num_frames):
@@ -115,8 +119,6 @@ class AtomCam:
                     # 直前のコンポジット画像があれば保存する。
                     print(key)
 
-                # blur_img = cv2.medianBlur(frame, 3)
-                # img_list.append(blur_img)
                 img_list.append(frame)
 
             number = len(img_list)
@@ -129,13 +131,11 @@ class AtomCam:
                 composite_img = brightest(img_list)
                 diff_img = brightest(diff(img_list, self.mask))
                 try:
-                    blur_img = cv2.medianBlur(composite_img, 3)
                     if not no_window:
+                        blur_img = cv2.medianBlur(composite_img, 3)
                         cv2.imshow('ATOM Cam2 x {} frames '.format(number), blur_img)
                         # cv2.imshow('ATOM Cam2 x {} frames '.format(number), composite_img)
                     if detect(diff_img) is not None:
-                        now = datetime.now()
-                        obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
                         print('{} A possible meteor was detected.'.format(obs_time))
                         filename = "{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
                         path_name = str(Path(output_dir, filename + ".jpg"))
@@ -205,7 +205,6 @@ class DetectMeteor():
                 try:
                     diff_img = brightest(diff(img_list, self.mask))
                     composite_img = brightest(img_list)
-                    # blur_img = cv2.medianBlur(composite_img, 3)
                     if detect(diff_img) is not None:
                         obs_time = "{}:{}".format(self.obs_time, str(count*exposure).zfill(2))
                         print('{}  A possible meteor was detected.'.format(obs_time))
@@ -234,20 +233,20 @@ def detect_meteor(args):
     if args.hour:
         data_dir = Path(data_dir, args.hour)
         if args.minute:
+            # 1分間のファイル単体の処理
             file_path = Path(data_dir, "{}.mp4".format(args.minute))
 
     # print(data_dir)
 
     if args.minute:
-        # 単体のmp4ファイルの処理
+        # 1分間の単体のmp4ファイルの処理
         print(file_path)
-        # atom = AtomCam(str(file_path))
         detecter = DetectMeteor(str(file_path))
         detecter.meteor(args.exposure, args.output)
     else:
         # 1時間内の一括処理
         for file_path in sorted(Path(data_dir).glob("*.mp4")):
-            print(Path(file_path))
+            print('#', Path(file_path))
             detecter = DetectMeteor(str(file_path))
             detecter.meteor(args.exposure, args.output)
 
@@ -257,6 +256,12 @@ def streaming(args):
         atom = AtomCam(args.url)
         if not atom.capture.isOpened():
             return
+
+    now = datetime.now()
+    obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(
+        now.year, now.month, now.day, now.hour, now.minute, now.second
+    )
+    print("# {} start".format(obs_time))
 
     while True:
         sts = atom.streaming(args.exposure, args.no_window, args.output)

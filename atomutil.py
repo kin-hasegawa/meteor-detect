@@ -3,20 +3,24 @@
 from pathlib import Path
 import argparse
 
-from atomcam import DetectMeteor
+from atomcam import DetectMeteor, ATOM_CAM_IP
 
 
 def make_ftpcmd(meteor_list):
     '''
+    検出されたログから画像をダウンロードするFTPコマンドを生成する。
     '''
     with open(meteor_list, "r") as f:
         for line in f.readlines():
+            if line.startswith('#'):
+                continue
+
             (date, time) = line.split()[0:2]
             hh, mm, ss = time.split(':')
 
             date_dir = ''.join(date.split('/'))
 
-            print("wget -r -nv -nH --cut-dirs=3 ftp://root:atomcam2@192.168.2.111/media/mmc/record/{}/{}/{}.mp4".format(date_dir,hh, mm))
+            print("wget -r -nv -nH --cut-dirs=3 ftp://root:atomcam2@{}/media/mmc/record/{}/{}/{}.mp4".format(ATOM_CAM_IP, date_dir,hh, mm))
 
 
 def make_movie(meteor_list):
