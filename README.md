@@ -1,7 +1,7 @@
 # meteor-detect
 
 ATOMCamのストリーミング及びデータからの流星を自動検出<br>
-Detecton of  meteors in movie files or streaming devices
+Automatic detecton of meteors in movie files and streaming devices(RTSP)
 
 無保証、無サポートです。
 
@@ -25,6 +25,8 @@ SDカードにダウンロードしたファイルをコピーしてカメラの
 インストール直後の
 
 ### OpenCVのインストール
+
+OpenCVはC/C++で書かれた強力な画像処理ライブラリで、Pythonから利用することができる。
 
 #### macOS/Ubuntuの場合
 
@@ -124,15 +126,15 @@ ATOM_CAM_RTSP = 'rtsp://192.168.2.111:8554/unicast'
 以下は、コマンドオプションの一覧。
 
 ```
-% ./atomcam.py -h
-usage: atomcam.py [-h] [-u URL] [-n] [-d DATE] [--hour HOUR] [-m MINUTE] [-i INPUT] [-e EXPOSURE] [-o OUTPUT]
+% ./atomcam.py --help
+usage: atomcam.py [-u URL] [-n] [-d DATE] [-h HOUR] [-m MINUTE] [-i INPUT] [-e EXPOSURE] [-o OUTPUT]
+                  [--help]
 
 optional arguments:
-  -h, --help            show this help message and exit
   -u URL, --url URL     RTSPのURL、または動画(MP4)ファイル
   -n, --no_window       画面非表示
   -d DATE, --date DATE  Date in 'yyyymmdd' format (JST)
-  --hour HOUR           Hour in 'hh' format (JST)
+  -h HOUR, --hour HOUR  Hour in 'hh' format (JST)
   -m MINUTE, --minute MINUTE
                         minute in mm (optional)
   -i INPUT, --input INPUT
@@ -141,6 +143,7 @@ optional arguments:
                         露出時間(second)
   -o OUTPUT, --output OUTPUT
                         検出画像の出力先ディレクトリ名
+  --help                show this help message and exit
 ```
 
 ### リアルタイムに流星検出を行う
@@ -158,7 +161,7 @@ optional arguments:
 以下はコマンドの出力例。この例で見つかっているのは飛行機。
 
 ```
------streaming-----
+# 2022/01/15 00:00:00 started.
 2022/01/15 00:19:31 A possible meteor was detected.
 2022/01/15 00:19:34 A possible meteor was detected.
 2022/01/15 00:19:37 A possible meteor was detected.
@@ -177,8 +180,10 @@ teeコマンドの`-a`オプションは追記で、オプションなしの場�
 
 ### 動画ファイル(ATOM Cam形式のディレクトリ4)から流星検出を行う
 
-```
+date=20220109 の日付の 01時台の1時間分のデータから流星検出を行う。
 
+```
+% ./atomcam.py -d 20220109 -h 01
 ```
 
 ### 動画ファイル(MP4)から流星検出を行う

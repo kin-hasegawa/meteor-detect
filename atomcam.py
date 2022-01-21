@@ -32,6 +32,7 @@ def composite(list_images):
 
 
 def brightest(img_list):
+    # 比較明合成処理
     output = img_list[0]
 
     for img in img_list[1:]:
@@ -41,6 +42,7 @@ def brightest(img_list):
 
 
 def diff(img_list, mask):
+    # 画像リストから差分画像のリストを作成する。
     diff_list = []
     for img1, img2 in zip(img_list[:-2], img_list[1:]):
         img1 = cv2.bitwise_or(img1, mask)
@@ -51,6 +53,7 @@ def diff(img_list, mask):
 
 
 def detect(img):
+    # 画像上の線状のパターンを流星として検出する。
     blur_size = (5, 5)
     blur = cv2.GaussianBlur(img, blur_size, 0)
     canny = cv2.Canny(blur, 100, 200, 3)
@@ -155,6 +158,8 @@ class DetectMeteor():
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
         self.FPS = 15
+
+        # file_pathから日付、時刻を取得する。
         date_element = file_path.split('/')
         self.date_dir = date_element[-3]
         self.date = datetime.strptime(self.date_dir, "%Y%m%d")
@@ -222,15 +227,17 @@ class DetectMeteor():
 
 def detect_meteor(args):
     '''
-    動画ファイルからの流星の検出
+    ATOM Cam形式の動画ファイルからの流星の検出
     '''
     if args.input:
+        # 入力ファイルのディレクトリの指定がある場合
         input_dir = Path(args.input)
     else:
         input_dir = Path('.')
 
     data_dir = Path(input_dir, args.date)
     if args.hour:
+        # 時刻(hour)の指定がある場合
         data_dir = Path(data_dir, args.hour)
         if args.minute:
             # 1分間のファイル単体の処理
@@ -252,6 +259,9 @@ def detect_meteor(args):
 
 
 def streaming(args):
+    '''
+    RTSPストリーミング、及び動画ファイルからの流星の検出
+    '''
     if args.url:
         atom = AtomCam(args.url)
         if not atom.capture.isOpened():
@@ -278,7 +288,7 @@ def streaming(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(add_help=False)
 
     # ストリーミングモードのオプション
     parser.add_argument('-u', '--url', default=ATOM_CAM_RTSP, help='RTSPのURL、または動画(MP4)ファイル')
@@ -286,7 +296,7 @@ if __name__ == '__main__':
 
     # 以下はATOM Cam形式のディレクトリからデータを読む場合のオプション
     parser.add_argument('-d', '--date', default=None, help="Date in 'yyyymmdd' format (JST)")
-    parser.add_argument('--hour', default=None, help="Hour in 'hh' format (JST)")
+    parser.add_argument('-h', '--hour', default=None, help="Hour in 'hh' format (JST)")
     parser.add_argument('-m', '--minute', default=None, help="minute in mm (optional)")
     parser.add_argument('-i', '--input', default=None, help='検出対象のTOPディレクトリ名')
 
@@ -294,7 +304,12 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--exposure', type=int, default=1, help='露出時間(second)')
     parser.add_argument('-o', '--output', default=None, help='検出画像の出力先ディレクトリ名')
 
+    parser.add_argument('--help', action='help', help='show this help message and exit')
+
     args = parser.parse_args()
+
+    print(args.hour)
+    sys.exit()
 
     if args.date:
         # 日付がある場合はファイル(ATOMCam形式のファイル)から流星検出
