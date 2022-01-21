@@ -12,6 +12,8 @@ ATOM Cam 2 及び、Python 3.8以上で動作確認(macOS, Ubuntu)。
 * atomcam_tools.zip
 * OpenCV
 
+(Python3.10 ではOpenCVがまだサポートされていないので、現状は Python3.9まで。)
+
 ### atomcam-toolsのインストール
 
 atomcam-tools は、ATOM Cam RTSPサーバー、FTP、TELNETサーバー等の機能を追加するツールです。
@@ -20,7 +22,7 @@ SDカードにダウンロードしたファイルをコピーしてカメラの
 以下のサイトから atomcam_tools.zip をダウンロードしてATOM Cam2にインストールします。
 
 - [ATOMCam2の機能拡張用ツールを公開しました](https://honeylab.hatenablog.jp/entry/2021/09/24/002107)
-- [ダウンロード](https://github.com/bakueikozo/atomcam_tools/releases/download/v1.0rc/atomcam_tools.zip)
+- [ダウンロード](https://github.com/bakueikozo/atomcam_tools/releases/download/v1.0rc/atomcam_tools.zip) はここから。
 
 インストール直後の
 
@@ -29,6 +31,11 @@ SDカードにダウンロードしたファイルをコピーしてカメラの
 OpenCVはC/C++で書かれた強力な画像処理ライブラリで、Pythonから利用することができる。
 
 #### macOS/Ubuntuの場合
+
+Python3環境は仮想環境を使うとシステム標準環境のPython(macOSの場合は2.7が標準となっている)と分けて使える。
+
+Python仮想環境の作り方については「Python 仮想環境 venv」などをキーワードにしてGoogle先生にお尋ねください。
+以下、Python3.Xの仮想環境下であることを想定しています。
 
 ```
 % pip install ffmpeg
@@ -120,7 +127,7 @@ $ sudo apt install wget
 
 ```
 # 自分の環境のATOM CamのIPアドレスに変更してください。
-ATOM_CAM_RTSP = 'rtsp://192.168.2.111:8554/unicast'
+ATOM_CAM_IP = "192.168.2.111"
 ```
 
 以下は、コマンドオプションの一覧。

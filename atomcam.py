@@ -308,9 +308,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    print(args.hour)
-    sys.exit()
-
     if args.date:
         # 日付がある場合はファイル(ATOMCam形式のファイル)から流星検出
         # detect_meteor(args.date, args.hour, args.minute, args.exposure)
