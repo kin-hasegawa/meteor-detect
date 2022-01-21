@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import sys
+import os
 from datetime import datetime
 import time
 import argparse
@@ -13,7 +14,7 @@ from imutils.video import FileVideoStream
 sys.stdout.reconfigure(line_buffering=True)
 
 # 自分の環境のATOM CamのIPに修正してください。
-ATOM_CAM_IP = "192.168.2.111"
+ATOM_CAM_IP = os.environ.get("ATOM_CAM_IP", "192.168.2.110")
 ATOM_CAM_RTSP = "rtsp://{}:8554/unicast".format(ATOM_CAM_IP)
 
 
