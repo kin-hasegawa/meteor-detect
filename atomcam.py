@@ -65,7 +65,6 @@ def detect(img):
 
 class AtomCam:
     def __init__(self, video_url=ATOM_CAM_RTSP, end_time="0600"):
-        print("# AtomCam")
         # video device url or movie file path
         self.capture = cv2.VideoCapture(video_url)
         self.FPS = self.capture.get(cv2.CAP_PROP_FPS)
@@ -300,6 +299,7 @@ def streaming(args):
 
             # 異常終了した場合に再接続する
             time.sleep(5)
+            print("# re-connectiong to ATOM Cam ....")
             atom = AtomCam(args.url, args.to)
         else:
             return
