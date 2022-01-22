@@ -3,7 +3,7 @@
 from pathlib import Path
 import sys
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import argparse
 import numpy as np
@@ -64,12 +64,23 @@ def detect(img):
 
 
 class AtomCam:
-    def __init__(self, video_url=ATOM_CAM_RTSP):
+    def __init__(self, video_url=ATOM_CAM_RTSP, end_time="0600"):
+        print("# AtomCam")
         # video device url or movie file path
         self.capture = cv2.VideoCapture(video_url)
         self.FPS = self.capture.get(cv2.CAP_PROP_FPS)
 
+        # MP4ファイル再生の場合を区別する。
         self.mp4 = Path(video_url).suffix == '.mp4'
+
+        # 終了時刻を設定する。
+        now = datetime.now()
+        t = datetime.strptime(end_time, "%H%M")
+        self.end_time = datetime(now.year, now.month, now.day, t.hour, t.minute)
+        if t.hour < 12:
+            self.end_time = self.end_time + timedelta(hours=24)
+
+        print("# end_time = ", self.end_time)
 
         # 時刻表示部分のマスクを作成
         zero = np.zeros((1080, 1920, 3), np.uint8)
@@ -149,6 +160,12 @@ class AtomCam:
             else:
                 print('No data: communcation lost? or end of data', file=sys.stderr)
                 return 1
+
+            # 終了時刻を過ぎたなら終了。
+            now = datetime.now()
+            if now > self.end_time:
+                print("# end of observation at ", now)
+                return 0
 
 
 class DetectMeteor():
@@ -264,7 +281,7 @@ def streaming(args):
     RTSPストリーミング、及び動画ファイルからの流星の検出
     '''
     if args.url:
-        atom = AtomCam(args.url)
+        atom = AtomCam(args.url, args.to)
         if not atom.capture.isOpened():
             return
 
@@ -283,7 +300,7 @@ def streaming(args):
 
             # 異常終了した場合に再接続する
             time.sleep(5)
-            atom = AtomCam(args.url)
+            atom = AtomCam(args.url, args.to)
         else:
             return
 
@@ -304,6 +321,7 @@ if __name__ == '__main__':
     # 共通オプション
     parser.add_argument('-e', '--exposure', type=int, default=1, help='露出時間(second)')
     parser.add_argument('-o', '--output', default=None, help='検出画像の出力先ディレクトリ名')
+    parser.add_argument('-t', '--to', default="0600", help='終了時刻(JST) "hhmm" 形式(ex. 0600)')
 
     parser.add_argument('--help', action='help', help='show this help message and exit')
 
