@@ -25,7 +25,7 @@ def make_ftpcmd(meteor_list):
 
 def make_movie(meteor_list):
     '''
-    検出された動画から再検出
+    検出された動画から再検出(修正中)
     '''
     with open(meteor_list, "r") as f:
         prev_file = None
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    print(args.meteors)
+    print("# {}".format(args.meteors))
 
     if args.ftp:
         make_ftpcmd(args.meteors)

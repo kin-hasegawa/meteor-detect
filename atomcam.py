@@ -154,20 +154,27 @@ class AtomCam:
                     self._running = False
                     return
 
-                img_list.append(frame)
-
                 if self.mp4 and self.image_queue.empty():
                     self._running = False
                     return
 
+                img_list.append(frame)
+
             if len(img_list) > 2:
-                # print(len(img_list))
                 self.detect_meteor(img_list)
-                composite_img = brightest(img_list)
                 if not no_window:
-                    cv2.imshow("thread test", composite_img)
+                    composite_img = brightest(img_list)
+                    cv2.imshow('ATOM Cam2 x {} frames '.format(len(img_list)), composite_img)
+
+            # ストリーミングの場合、終了時刻を過ぎたなら終了。
+            now = datetime.now()
+            if not self.mp4 and now > self.end_time:
+                print("# end of observation at ", now)
+                self._running = False
+                return
 
     def detect_meteor(self, img_list):
+        # img_listで与えられた画像のリストから流星(移動天体)を検出する。
         now = datetime.now()
         obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
 
