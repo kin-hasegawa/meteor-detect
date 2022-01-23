@@ -10,12 +10,20 @@ import numpy as np
 import cv2
 from imutils.video import FileVideoStream
 
+# マルチスレッド関係
+import threading
+import queue
+
+
 # 行毎に標準出力のバッファをflushする。
 sys.stdout.reconfigure(line_buffering=True)
 
 # 自分の環境のATOM CamのIPに修正してください。
 ATOM_CAM_IP = os.environ.get("ATOM_CAM_IP", "192.168.2.110")
 ATOM_CAM_RTSP = "rtsp://{}:8554/unicast".format(ATOM_CAM_IP)
+
+# 動画フレームのリストのqueueを生成する。
+# image_queue = queue.Queue(maxsize=1024)
 
 
 def composite(list_images):
@@ -64,10 +72,21 @@ def detect(img):
 
 
 class AtomCam:
-    def __init__(self, video_url=ATOM_CAM_RTSP, end_time="0600"):
+    def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600"):
+        self._running = False
         # video device url or movie file path
-        self.capture = cv2.VideoCapture(video_url)
+        self.capture = None
+        self.url = video_url
+        self.connect()
         self.FPS = self.capture.get(cv2.CAP_PROP_FPS)
+
+        # 出力先ディレクトリ
+        if output:
+            output_dir = Path(output)
+            output_dir.mkdir(exist_ok=True)
+        else:
+            output_dir = Path('.')
+        self.output_dir = output_dir
 
         # MP4ファイル再生の場合を区別する。
         self.mp4 = Path(video_url).suffix == '.mp4'
@@ -76,7 +95,7 @@ class AtomCam:
         now = datetime.now()
         t = datetime.strptime(end_time, "%H%M")
         self.end_time = datetime(now.year, now.month, now.day, t.hour, t.minute)
-        if t.hour < 12:
+        if now > self.end_time:
             self.end_time = self.end_time + timedelta(hours=24)
 
         print("# end_time = ", self.end_time)
@@ -85,26 +104,96 @@ class AtomCam:
         zero = np.zeros((1080, 1920, 3), np.uint8)
         self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
 
+        self.image_queue = queue.Queue(maxsize=100)
+
     def __del__(self):
         self.capture.release()
         cv2.destroyAllWindows()
 
-    def streaming(self, exposure, no_window, output):
+    def connect(self):
+        if self.capture:
+            self.capture.release()
+        self.capture = cv2.VideoCapture(self.url)
+
+    def queue_streaming(self):
+        # RTSP読み込みをthreadで行い、queueにデータを流し込む。
+        print("# threading version started.")
+        frame_count = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT))
+        self._running = True
+        while(True):
+            try:
+                ret, frame = self.capture.read()
+                if ret:
+                    # self.image_queue.put_nowait(frame)
+                    self.image_queue.put(frame)
+                    if self.mp4:
+                        current_pos = int(self.capture.get(cv2.CAP_PROP_POS_FRAMES))
+                        if current_pos >= frame_count:
+                            break
+                else:
+                    self.connect()
+                    continue
+
+                if self._running is False:
+                    break
+            except Exception as e:
+                print(e, file=sys.stderr)
+                continue
+
+    def dequeue_streaming(self, exposure=1, no_window=False):
+        # queueからデータを読み出し流星検知、描画を行う。
+        num_frames = int(self.FPS * exposure)
+
+        while True:
+            img_list = []
+            for n in range(num_frames):
+                frame = self.image_queue.get()
+
+                key = chr(cv2.waitKey(1) & 0xFF)
+                if key == 'q':
+                    self._running = False
+                    return
+
+                img_list.append(frame)
+
+                if self.mp4 and self.image_queue.empty():
+                    self._running = False
+                    return
+
+            if len(img_list) > 2:
+                # print(len(img_list))
+                self.detect_meteor(img_list)
+                composite_img = brightest(img_list)
+                if not no_window:
+                    cv2.imshow("thread test", composite_img)
+
+    def detect_meteor(self, img_list):
+        now = datetime.now()
+        obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
+
+        if len(img_list) > 2:
+            # 差分間で比較明合成を取るために最低3フレームが必要。
+            # 画像のコンポジット(単純スタック)
+            diff_img = brightest(diff(img_list, self.mask))
+            try:
+                if detect(diff_img) is not None:
+                    print('{} A possible meteor was detected.'.format(obs_time))
+                    filename = "{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
+                    path_name = str(Path(self.output_dir, filename + ".jpg"))
+                    composite_img = brightest(img_list)
+                    cv2.imwrite(path_name, composite_img)
+            except Exception as e:
+                print(e, file=sys.stderr)
+
+    def streaming(self, exposure, no_window):
         '''
         ストリーミング再生
           exposure: 比較明合成する時間(sec)
           no_window: True .. 画面表示しない
-          output: 出力先ディレクトリ
 
           return 0 終了
           return 1 異常終了
         '''
-        if output:
-            output_dir = Path(output)
-            output_dir.mkdir(exist_ok=True)
-        else:
-            output_dir = Path('.')
-
         num_frames = int(self.FPS * exposure)
         composite_img = None
 
@@ -152,7 +241,7 @@ class AtomCam:
                     if detect(diff_img) is not None:
                         print('{} A possible meteor was detected.'.format(obs_time))
                         filename = "{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
-                        path_name = str(Path(output_dir, filename + ".jpg"))
+                        path_name = str(Path(self.output_dir, filename + ".jpg"))
                         cv2.imwrite(path_name, composite_img)
                 except Exception as e:
                     print(e, file=sys.stderr)
@@ -280,7 +369,7 @@ def streaming(args):
     RTSPストリーミング、及び動画ファイルからの流星の検出
     '''
     if args.url:
-        atom = AtomCam(args.url, args.to)
+        atom = AtomCam(args.url, args.output, args.to)
         if not atom.capture.isOpened():
             return
 
@@ -291,7 +380,7 @@ def streaming(args):
     print("# {} start".format(obs_time))
 
     while True:
-        sts = atom.streaming(args.exposure, args.no_window, args.output)
+        sts = atom.streaming(args.exposure, args.no_window)
         if sts == 1:
             if Path(args.url).suffix == '.mp4':
                 # MP4ファイルの場合は終了する。
@@ -300,9 +389,21 @@ def streaming(args):
             # 異常終了した場合に再接続する
             time.sleep(5)
             print("# re-connectiong to ATOM Cam ....")
-            atom = AtomCam(args.url, args.to)
+            atom = AtomCam(args.url, args.output, args.to)
         else:
             return
+
+
+def streaming_thread(args):
+    atom = AtomCam(args.url, args.output, args.to)
+    t_in = threading.Thread(target=atom.queue_streaming)
+    t_in.start()
+
+    atom.dequeue_streaming(args.exposure, args.no_window)
+
+    t_in.join()
+
+    return
 
 
 if __name__ == '__main__':
@@ -323,14 +424,19 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', default=None, help='検出画像の出力先ディレクトリ名')
     parser.add_argument('-t', '--to', default="0600", help='終了時刻(JST) "hhmm" 形式(ex. 0600)')
 
+    # threadモードのテスト用
+    parser.add_argument('--multithread', action='store_true', help='マルチスレッドテスト')
+
     parser.add_argument('--help', action='help', help='show this help message and exit')
 
     args = parser.parse_args()
 
     if args.date:
         # 日付がある場合はファイル(ATOMCam形式のファイル)から流星検出
-        # detect_meteor(args.date, args.hour, args.minute, args.exposure)
         detect_meteor(args)
+    elif args.multithread:
+        # スレッド版テスト用
+        streaming_thread(args)
     else:
         # ストリーミング/動画(MP4)の再生
         streaming(args)
