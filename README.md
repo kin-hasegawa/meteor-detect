@@ -7,8 +7,8 @@ Automatic detecton of meteors in movie files and streaming devices(RTSP)
 
 ## 概要
 
-安価なATOM Cam2(防水型の夜間監視カメラ)というオモチャを手に入れて、ベランダに設置してしぶんぎ座流星群を撮影したものの、
-後から流星を検出するのが大変なので、なんとか自動化できないか検討した結果、動画を見て数える何倍もの時間をかけて自動流星検知を作成した。
+安価なATOM Cam2(防水型の夜間監視カメラ)というオモチャを手に入れて、ベランダに設置してしぶんぎ座流星群を撮影した。
+しかし、後から流星を検出するのが大変なので、なんとか自動化できないか検討した。動画を見て数える何倍もの時間をかけて自動流星検知を作成した。でも、楽しい。
 
 * ATOM Cam2 からのストリーミングデータ(RTSP配信)をリアルタイムで解析し、流星を検知すること。
 * ATOM Cam2 による撮影済みの動画データ(MP4)を解析して、流星を検知すること。
@@ -21,8 +21,12 @@ Automatic detecton of meteors in movie files and streaming devices(RTSP)
 * ネットワークカメラ
   * ATOM Cam2、及び、ATOM Cam Swingで動作確認。
 
+<p align="center">
+  <img src="images/ATOM_Cam2.jpeg" alt="ATOM Cam2" width="80%">
+</p>
+
 * PC環境
-  * macOS 12.X(Intel Mac, M1 Mac) , Ubuntu 20.04LTSで動作確認。
+  * macOS 11, 12 (Intel Mac, M1 Mac) , Ubuntu 20.04LTSで動作確認。
   * Python 3.8以上で動作確認<br>
   (2022/01/20現在、Python3.10 ではOpenCVがまだサポートされていないので、現状は Python3.9まで)
 
@@ -30,8 +34,8 @@ Automatic detecton of meteors in movie files and streaming devices(RTSP)
   * ATOM Cam側
     * atomcam_tools.zip
   * PC側
+    * Python 3.X
     * OpenCV
-
 
 ### atomcam-toolsのインストール
 
@@ -70,6 +74,23 @@ configs   kback     media     proc      sbin      thirdlib  var
 20220115  20220117  20220119  20220121  20220123  20220125
 ```
 
+#### ATOM Cam2の内蔵時計
+
+ATOM Cam2の内蔵時計はネットワークを通してNTPと同期していないために、時間と共にずれていく。
+みんなどうやって合わせてるのだろうか？ アプリにも時刻設定メニューが見当たらない。
+
+とりあえず、telnet で入れるので、[JST Clockサイト](https://www.nict.go.jp/JST/JST5.html)を見ながら、dateコマンドで強制的に時刻を設定する。
+時刻はUTCなので注意。
+
+```
+# date -s "2022-01-23 13:36"
+```
+
+#### ATOM Cam2の動体検知
+
+デフォルトのATOM Cam2では動体検知が動いているので、これをOFFにする。動体検知の枠線が自動検出の邪魔になるため。
+また、同様に左下のロゴマークも邪魔なのでOFFにする。
+
 ### OpenCVのインストール
 
 OpenCVはC/C++で書かれた強力な汎用画像処理ライブラリで、Pythonから利用することができる。
@@ -85,75 +106,6 @@ Python仮想環境の作り方については「Python 仮想環境 venv」な�
 % pip install ffmpeg
 % pip install opencv-python
 % pip install imutils
-```
-
-## データ
-
-リアルタイムではなく、後日撮影データから流星を検知する場合は、ATOM Camからのデータをダウンロード、あるいはSDカードからコピーする必要がある。
-
-あるいはNAS出力を設定していればダウンロードの必要はない。
-
-ディレクトリ構造は日付毎に以下のようになっている。
-
-```
-% tree 20220114
-20220114
-└── 23
-    ├── 00.mp4
-    ├── 01.mp4
-    ├── 02.mp4
-    ├── 03.mp4
-    ├── 04.mp4
-
-以下省略
-
-```
-
-### データのダウンロード
-
-データのダウンロードは、好みのFTPクライアントで行う。FTPのアカウントもtelnetログインの場合と同じで、デフォルトでは、`root/カメラ名`である。
-
-以下はwgetコマンドを使ってダウンロードする例。
-
-日付を指定して一括ダウンロードする例:
-
-```
-% wget -r -nv -nH --cut-dirs=3 ftp://root:atomcam2@192.168.2.111/media/mmc/record/20220104
-```
-
-日付時刻を指定して1時間分のデータをダウンロードする例:
-
-```
-% wget -r -nv -nH --cut-dirs=3 ftp://root:atomcam2@192.168.2.111/media/mmc/record/20220104/01
-```
-
-wgetコマンドのインストール方法
-
-#### macOS
-
-```
-% brew install wget
-```
-
-#### Ubuntu
-
-```
-$ sudo apt install wget
-```
-
-#### FTPスクリプト
-
-指定範囲のデータをまとめてダウンロードするためのスクリプト(atom_ftp.sh)を用意した。
-
-```
-% ./atom_ftp.sh 20220104 1 2
-```
-
-とやることで、カレントディレクトリ以下に指定時刻(1〜2時)のデータをダウンロードできる。
-
-```
-20220104/01/*.mp4
-20220104/02/*.mp4
 ```
 
 ## 流星検出方法
@@ -207,6 +159,8 @@ def detect(img):
 ```
 
 ## 使い方
+
+### 事前の準備
 
 ソースコードの下記の行を自分のATOM CamのIPに合わせて修正してください。
 
@@ -274,7 +228,31 @@ optional arguments:
 ...
 ```
 
-稼働中にWi-Fi回線の不具合などでエラーが出る場合もあるが、切れた場合は再接続を試みて続行します。
+以下は自宅環境のログ出力の例。Wi-Fi環境が悪く、パケットロスにより動画をデコードに失敗した場合に出るエラー(h264エラー)。
+接続が切れた場合は再接続を試みて続行するようにしている。
+
+
+```
+[h264 @ 0x7fa9440c8700] error while decoding MB 51 51, bytestream -5
+[h264 @ 0x7fa9440c8700] error while decoding MB 114 65, bytestream -43
+[h264 @ 0x7fa946c262c0] error while decoding MB 116 17, bytestream -5
+2022/01/25 00:34:35 A possible meteor was detected.
+2022/01/25 00:34:42 A possible meteor was detected.
+[h264 @ 0x7fa947e41080] error while decoding MB 40 57, bytestream -5
+[h264 @ 0x7fa947e282c0] error while decoding MB 102 45, bytestream -5
+2022/01/25 01:09:15 A possible meteor was detected.
+2022/01/25 01:15:31 A possible meteor was detected.
+2022/01/25 01:29:58 A possible meteor was detected.
+2022/01/25 01:32:03 A possible meteor was detected.
+[h264 @ 0x7fa947e41080] error while decoding MB 82 
+```
+回線状態が良ければ上記のエラーはでない。
+
+<p align="center">
+  <img src="images/20220104050908.jpg" alt="QUA Meteor" width="80%">
+  <br>
+  比較明合成で検出された流星画像の例。
+</p>
 
 RTSPのURLを指定して起動する例。
 
@@ -293,13 +271,93 @@ teeコマンドの`-a`オプションは追記で、オプションなしの場�
 
 ### 動画ファイル(ATOM Cam形式のディレクトリ)から流星検出を行う
 
-date=20220109 の日付の 01時台の1時間分のデータから流星検出を行う。
+#### ATOM Camのデータ
+
+リアルタイムではなく、後日撮影データから流星を検知する場合は、ATOM Camからのデータをダウンロード、あるいはSDカードからコピーする必要がある。
+
+あるいはNAS出力を設定していればダウンロードの必要はない。
+
+ディレクトリ構造は日付毎に以下のようになっている。
+
+```
+% tree 20220114
+20220114
+└── 23
+    ├── 00.mp4
+    ├── 01.mp4
+    ├── 02.mp4
+    ├── 03.mp4
+    ├── 04.mp4
+
+以下省略
+
+```
+
+#### データのダウンロード
+
+ATOM Camからのデータのダウンロードは、好みのFTPクライアントで行う。FTPのアカウントもtelnetログインの場合と同じで、デフォルトでは、`root/カメラ名`である。
+
+以下はwgetコマンドを使ってダウンロードする例。
+
+日付を指定して一括ダウンロードする例:
+
+```
+% wget -r -nv -nH --cut-dirs=3 ftp://root:atomcam2@192.168.2.111/media/mmc/record/20220104
+```
+
+日付時刻を指定して1時間分のデータをダウンロードする例:
+
+```
+% wget -r -nv -nH --cut-dirs=3 ftp://root:atomcam2@192.168.2.111/media/mmc/record/20220104/01
+```
+
+wgetコマンドのインストール方法
+
+#### macOS
+
+```
+% brew install wget
+```
+
+#### Ubuntu
+
+```
+$ sudo apt install wget
+```
+
+#### FTPスクリプト
+
+指定時刻範囲のデータをまとめてダウンロードするためのスクリプト(atom_ftp.sh)を用意した。
+
+```
+% ./atom_ftp.sh 20220104 1 2
+```
+
+とやることで、カレントディレクトリ以下に指定時刻(1〜2時)のデータをダウンロードできる。
+
+```
+20220104/01/*.mp4
+20220104/02/*.mp4
+```
+
+#### 実行例
+
+date=20220109 の日付の 01時台の1時間分のデータから流星検出を行う場合の例。
 
 ```
 % ./atomcam.py -d 20220109 -h 01
 ```
 
+1時間分の流星検出に約8分ほどかかった(M1 MacBookAirの場合)。古い Intel Core i-5のPCで24分程度。
+
 ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとファイル名から流星検出時刻を推定して出力する。
+
+<p align="center">
+  <img src="images/しぶんぎ.gif" alt="QUA Meteor" width="80%">
+  <br>
+  検出された流星動画のオリジナル。
+</p>
+
 
 ### 動画ファイル(MP4)から流星検出を行う
 
@@ -313,6 +371,19 @@ ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとフ�
 ## 暫定結果
 
 2022年1月4日のしぶんぎ流星群のデータでの検証。
+
+### 杉並
+
+2022年1月4日に、東京都杉並区で南の空に向けた動画から検出した流星。(一部飛行機が含まれている)
+
+<p align="center">
+  <img src="images/meteor.gif" alt="QUA Meteor" width="80%">
+  <br>
+  検出された流星の比較明合成画像を繋げた動画。
+</p>
+
+
+### 高崎
 
 ```
 文二さんの01/04の5時台のデータ調査。
