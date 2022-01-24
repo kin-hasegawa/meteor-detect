@@ -432,7 +432,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--to', default="0600", help='終了時刻(JST) "hhmm" 形式(ex. 0600)')
 
     # threadモードのテスト用
-    parser.add_argument('--multithread', action='store_true', help='マルチスレッドテスト')
+    parser.add_argument('--thread', action='store_true', help='スレッドテスト版')
 
     parser.add_argument('--help', action='help', help='show this help message and exit')
 
@@ -441,7 +441,7 @@ if __name__ == '__main__':
     if args.date:
         # 日付がある場合はファイル(ATOMCam形式のファイル)から流星検出
         detect_meteor(args)
-    elif args.multithread:
+    elif args.thread:
         # スレッド版テスト用
         streaming_thread(args)
     else:
