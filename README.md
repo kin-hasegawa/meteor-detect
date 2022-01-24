@@ -5,26 +5,70 @@ Automatic detecton of meteors in movie files and streaming devices(RTSP)
 
 無保証、無サポートです。
 
-## 準備
+## 概要
 
-ATOM Cam 2 及び、Python 3.8以上で動作確認(macOS, Ubuntu)。
+安価なATOM Cam2(防水型の夜間監視カメラ)というオモチャを手に入れて、ベランダに設置してしぶんぎ座流星群を撮影したものの、
+後から流星を検出するのが大変なので、なんとか自動化できないか検討した結果、動画を見て数える何倍もの時間をかけて自動流星検知を作成した。
 
-* atomcam_tools.zip
-* OpenCV
+* ATOM Cam2 からのストリーミングデータ(RTSP配信)をリアルタイムで解析し、流星を検知すること。
+* ATOM Cam2 による撮影済みの動画データ(MP4)を解析して、流星を検知すること。
 
-(2022/01/20現在、Python3.10 ではOpenCVがまだサポートされていないので、現状は Python3.9まで。)
+実際に使ってみた結果、流星検出能力は人間と同程度。人間も見落とすし、自動検知も見落とす。<br>
+現状、流星と飛行機の区別ができていない場合があるため、最後は該当動画を目視で確認する必要あり。
+
+## 動作環境
+
+* ネットワークカメラ
+  * ATOM Cam2、及び、ATOM Cam Swingで動作確認。
+
+* PC環境
+  * macOS 12.X(Intel Mac, M1 Mac) , Ubuntu 20.04LTSで動作確認。
+  * Python 3.8以上で動作確認<br>
+  (2022/01/20現在、Python3.10 ではOpenCVがまだサポートされていないので、現状は Python3.9まで)
+
+* 必要なソフトウエア
+  * ATOM Cam側
+    * atomcam_tools.zip
+  * PC側
+    * OpenCV
+
 
 ### atomcam-toolsのインストール
 
-atomcam-tools は、ATOM Cam RTSPサーバー、FTP、TELNETサーバー等の機能を追加するツールです。
-SDカードにダウンロードしたファイルをコピーしてカメラの再起動を行うだけでインストールができます。
+atomcam-tools は、ATOM Cam RTSPサーバー、FTP、TELNETサーバー等の機能を追加するツールである。カメラ上でLinuxのカーネルを稼働させて、それらの機能を提供している。
+SDカードにダウンロードしたファイルをコピーしてカメラの再起動を行うだけでインストールができる。
 
-以下のサイトから atomcam_tools.zip をダウンロードしてATOM Cam2にインストールします。
+以下のサイトから atomcam_tools.zip をダウンロードしてATOM Cam2にインストールする。
 
 - [ATOMCam2の機能拡張用ツールを公開しました](https://honeylab.hatenablog.jp/entry/2021/09/24/002107)
 - [ダウンロード](https://github.com/bakueikozo/atomcam_tools/releases/download/v1.0rc/atomcam_tools.zip) はここから。
 
-インストール直後の
+インストール直後して、ATOM Camを再起動すると使えるようになる。
+telnetでカメラにrootアカウントでログインすることができる。デフォルトのパスワードはカメラの名前(ATOM Cam2の場合は'atomcam2')。
+
+カメラのIPアドレスは、ATOM Camのアプリのデバイス情報で確認することができる。下記の例は私のローカルネットワーク内のカメラのIPで接続した例。
+
+```
+% telnet 192.168.2.110
+Trying 192.168.2.110...
+Connected to 192.168.2.110.
+Escape character is '^]'.
+
+Ingenic login: root
+Password: 
+[root@Ingenic:~]# ls
+aback     dev       lib       mnt       root      sys       tmp
+bin       etc       linuxrc   opt       run       system    usr
+configs   kback     media     proc      sbin      thirdlib  var
+```
+
+カメラ上のデータは、以下のところに保存されている。
+
+```
+[root@Ingenic:~]# ls media/mmc/record/
+20220114  20220116  20220118  20220120  20220122  20220124
+20220115  20220117  20220119  20220121  20220123  20220125
+```
 
 ### OpenCVのインストール
 
@@ -45,9 +89,11 @@ Python仮想環境の作り方については「Python 仮想環境 venv」な�
 
 ## データ
 
-ATOM Camからのデータは、SDカードあるいは atomcam_tools によるFTPダウンロードします。
+リアルタイムではなく、後日撮影データから流星を検知する場合は、ATOM Camからのデータをダウンロード、あるいはSDカードからコピーする必要がある。
 
-ディレクトリ構造は日付毎に以下のようになっています。
+あるいはNAS出力を設定していればダウンロードの必要はない。
+
+ディレクトリ構造は日付毎に以下のようになっている。
 
 ```
 % tree 20220114
@@ -65,7 +111,9 @@ ATOM Camからのデータは、SDカードあるいは atomcam_tools によるF
 
 ### データのダウンロード
 
-wgetコマンドを使うとまとめてダウンロードすることができます。
+データのダウンロードは、好みのFTPクライアントで行う。FTPのアカウントもtelnetログインの場合と同じで、デフォルトでは、`root/カメラ名`である。
+
+以下はwgetコマンドを使ってダウンロードする例。
 
 日付を指定して一括ダウンロードする例:
 
@@ -95,13 +143,13 @@ $ sudo apt install wget
 
 #### FTPスクリプト
 
-指定範囲のデータをまとめてダウンロードするためのスクリプト(atom_ftp.sh)を用意しました。
+指定範囲のデータをまとめてダウンロードするためのスクリプト(atom_ftp.sh)を用意した。
 
 ```
 % ./atom_ftp.sh 20220104 1 2
 ```
 
-とやることで、カレントディレクトリ以下に指定時刻(1〜2時)のデータをダウンロードできます。
+とやることで、カレントディレクトリ以下に指定時刻(1〜2時)のデータをダウンロードできる。
 
 ```
 20220104/01/*.mp4
@@ -115,11 +163,48 @@ $ sudo apt install wget
 1. 移動天体の中から流星と思われる直線状のパターンを検出する。
 1. 検出メッセージ(時刻)を出力し、その比較明合成画像を保存する。
 
-流星と飛行機、人工衛星の区別がまだ十分にできていない。また、東京の空ではS/Nが悪いため暗い流星は検出できない。
+```
+def brightest(img_list):
+    # 比較明合成処理
+    output = img_list[0]
+
+    for img in img_list[1:]:
+        output = np.where(output > img, output, img)
+
+    return output
+
+
+def diff(img_list, mask):
+    # 画像リストから差分画像のリストを作成する。
+    diff_list = []
+    for img1, img2 in zip(img_list[:-2], img_list[1:]):
+        img1 = cv2.bitwise_or(img1, mask)
+        img2 = cv2.bitwise_or(img2, mask)
+        diff_list.append(cv2.subtract(img1, img2))
+
+    return diff_list
+```
 
 画像からの流星の検出方法は下記のサイトで紹介されている方法を参考にした。
 
 [D64.NL – METEOR DETECTING PROJECT](https://www.meteornews.net/2020/05/05/d64-nl-meteor-detecting-project/)
+
+その部分を応用したもの。ほぼそのまま。
+流星と飛行機、人工衛星の区別がまだ十分にできていない。また、東京の空ではS/Nが悪いため暗い流星は検出できない。
+
+`minLineLength`の値が検出する線状パターンの長さ。これを長くすると遅い飛行機、人工衛星を除外できるが、経路の短い流星を見落としてしまう。
+
+
+```
+def detect(img):
+    # 画像上の線状のパターンを流星として検出する。
+    blur_size = (5, 5)
+    blur = cv2.GaussianBlur(img, blur_size, 0)
+    canny = cv2.Canny(blur, 100, 200, 3)
+
+    # The Hough-transform algo:
+    return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=30, maxLineGap=5)
+```
 
 ## 使い方
 
@@ -133,7 +218,7 @@ ATOM_CAM_IP = os.environ.get("ATOM_CAM_IP", "192.168.2.110")
 ATOM CamのIPアドレスは固定IPアドレスではなく、Wi-FiルータのDHCPによって決まるので、
 ルーターの設定によってはIPアドレスが変更される場合があるので注意。ルータ側でATOM CamのMACアドレスを登録して同じIPアドレスが割り当てられるようにしておくとよい。
 
-ATOM CamのIPアドレスはコマンド起動時に引数で指定することもできます。また環境変数(ATOM_CAM_IP)に設定しておくと、それがデフォルトになります。
+ATOM CamのIPアドレスはコマンド起動時に引数で指定することもできます。また環境変数(ATOM_CAM_IP)に設定しておくと、それがデフォルトになる。
 
 ```
 export ATOM_CAM_IP=192.168.2.110
@@ -143,7 +228,7 @@ export ATOM_CAM_IP=192.168.2.110
 
 ```
 % ./atomcam.py --help
-usage: atomcam.py [-u URL] [-n] [-d DATE] [-h HOUR] [-m MINUTE] [-i INPUT] [-e EXPOSURE] [-o OUTPUT]
+usage: atomcam.py [-u URL] [-n] [-d DATE] [-h HOUR] [-m MINUTE] [-i INPUT] [-e EXPOSURE] [-o OUTPUT] [-t TO] [--thread]
                   [--help]
 
 optional arguments:
@@ -159,12 +244,14 @@ optional arguments:
                         露出時間(second)
   -o OUTPUT, --output OUTPUT
                         検出画像の出力先ディレクトリ名
+  -t TO, --to TO        終了時刻(JST) "hhmm" 形式(ex. 0600)
+  --thread              スレッドテスト版
   --help                show this help message and exit
 ```
 
 ### リアルタイムに流星検出を行う
 
-`atomcam.py`コマンドがあるディレクトリ下での実行を想定しています。
+以下、`atomcam.py`コマンドがあるディレクトリ下での実行を想定している。必要であればPATHの通った場所に置く。
 
 デフォルト状態での実行例
 
@@ -177,6 +264,7 @@ optional arguments:
 以下はコマンドの出力例。この例で見つかっているのは飛行機。
 
 ```
+# end_time =  2022-01-15 06:00:00
 # 2022/01/15 00:00:00 started.
 2022/01/15 00:19:31 A possible meteor was detected.
 2022/01/15 00:19:34 A possible meteor was detected.
@@ -211,9 +299,66 @@ date=20220109 の日付の 01時台の1時間分のデータから流星検出�
 % ./atomcam.py -d 20220109 -h 01
 ```
 
+ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとファイル名から流星検出時刻を推定して出力する。
+
 ### 動画ファイル(MP4)から流星検出を行う
 
 ```
 % ./atomcam.py -u 20220109/01/05.mp4
+```
+
+単純にMP4ファイルを指定した場合は、流星検出時刻は推定できないので、現在時刻を表示するみ。
+(開始時刻からの秒数も分かるといいかも)
+
+## 暫定結果
+
+2022年1月4日のしぶんぎ流星群のデータでの検証。
+
+```
+文二さんの01/04の5時台のデータ調査。
+
+          目視   自動検出
+-----------------------
+05:01:04  x     o
+05:02:24  x     o
+05:02:24  x     o
+05:03:14  o     o
+05:07:20  x     o
+05:07:36  o     x  真ん中下の方短経路
+05:08:46  x     o
+05:09:07  o     x  <-- 分からない。
+05:09:08  o     o
+05:09:40  x     o
+05:11:49  o     x  左側短経路
+05:13:36  o     x  淡い
+05:16:18  x     o
+05:20:21  o     o
+05:21:40  x     o
+05:24:05  o     o
+05:24:51  o     o
+05:25:16  o     o
+05:26:50  o     o
+05:29:27  x     o
+05:29:34  o     o
+05:29:55  o     o
+05:30:24  o     o
+05:32:16  x     o
+05:33:56  x     o
+05:39:09  o     o
+05:42:05  o     x  右下の方の短経路
+05:43:00  o     o
+05:46:50  o     x  淡い
+05:50:58  o     o
+05:53:46  o     x  真ん中下
+05:53:54  o     x  真ん中ぐらい、淡い
+05:55:04  x     o
+05:56:47  o     o
+
+  全流星  34個
+  目視    23個
+  自動    26個
+  重複    14個
+  目視のみ 8
+  自動のみ 12個
 ```
 

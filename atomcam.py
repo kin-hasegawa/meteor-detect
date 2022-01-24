@@ -270,7 +270,7 @@ class DetectMeteor():
     def __init__(self, file_path):
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
-        self.FPS = 15
+        self.FPS = self.capture.stream.get(cv2.CAP_PROP_FPS)
 
         # file_pathから日付、時刻を取得する。
         date_element = file_path.split('/')
