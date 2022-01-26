@@ -167,8 +167,8 @@ class AtomCam:
             if len(img_list) > 2:
                 self.detect_meteor(img_list)
                 if not no_window:
-                    composite_img = brightest(img_list)
-                    cv2.imshow('ATOM Cam2 x {} frames '.format(len(img_list)), composite_img)
+                    self.composite_img = brightest(img_list)
+                    cv2.imshow('ATOM Cam2 x {} frames '.format(len(img_list)), self.composite_img)
 
             # ストリーミングの場合、終了時刻を過ぎたなら終了。
             now = datetime.now()
@@ -191,8 +191,7 @@ class AtomCam:
                     print('{} A possible meteor was detected.'.format(obs_time))
                     filename = "{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
                     path_name = str(Path(self.output_dir, filename + ".jpg"))
-                    composite_img = brightest(img_list)
-                    cv2.imwrite(path_name, composite_img)
+                    cv2.imwrite(path_name, self.composite_img)
             except Exception as e:
                 print(e, file=sys.stderr)
 
@@ -326,13 +325,13 @@ class DetectMeteor():
             if number > 2:
                 try:
                     diff_img = brightest(diff(img_list, self.mask))
-                    composite_img = brightest(img_list)
                     if detect(diff_img) is not None:
                         obs_time = "{}:{}".format(self.obs_time, str(count*exposure).zfill(2))
                         print('{}  A possible meteor was detected.'.format(obs_time))
                         filename = self.date_dir + self.hour + self.minute + str(count*exposure).zfill(2)
                         path_name = str(Path(output_dir, filename + ".jpg"))
                         # cv2.imwrite(filename + ".jpg", diff_img)
+                        composite_img = brightest(img_list)
                         cv2.imwrite(path_name, composite_img)
                 except Exception as e:
                     # print(traceback.format_exc(), file=sys.stderr)
@@ -406,9 +405,9 @@ def streaming(args):
 
 
 def streaming_thread(args):
+    # スレッド版の流星検出
     atom = AtomCam(args.url, args.output, args.to)
     t_in = threading.Thread(target=atom.queue_streaming)
-
     t_in.start()
 
     try:
