@@ -115,6 +115,10 @@ class AtomCam:
             self.capture.release()
         self.capture = cv2.VideoCapture(self.url)
 
+    def stop(self):
+        # thread を止める
+        self._running = False
+
     def queue_streaming(self):
         # RTSP読み込みをthreadで行い、queueにデータを流し込む。
         print("# threading version started.")
@@ -404,12 +408,15 @@ def streaming(args):
 def streaming_thread(args):
     atom = AtomCam(args.url, args.output, args.to)
     t_in = threading.Thread(target=atom.queue_streaming)
+
     t_in.start()
 
-    atom.dequeue_streaming(args.exposure, args.no_window)
+    try:
+        atom.dequeue_streaming(args.exposure, args.no_window)
+    except KeyboardInterrupt:
+        atom.stop()
 
     t_in.join()
-
     return
 
 
