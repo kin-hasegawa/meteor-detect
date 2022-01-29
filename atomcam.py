@@ -166,8 +166,8 @@ class AtomCam:
 
             if len(img_list) > 2:
                 self.detect_meteor(img_list)
+                self.composite_img = brightest(img_list)
                 if not no_window:
-                    self.composite_img = brightest(img_list)
                     cv2.imshow('ATOM Cam2 x {} frames '.format(len(img_list)), self.composite_img)
 
             # ストリーミングの場合、終了時刻を過ぎたなら終了。
