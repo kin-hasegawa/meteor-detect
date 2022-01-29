@@ -3,12 +3,14 @@
 from pathlib import Path
 import sys
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 import argparse
 import numpy as np
 import cv2
 from imutils.video import FileVideoStream
+import telnetlib
+
 
 # マルチスレッド関係
 import threading
@@ -22,8 +24,31 @@ sys.stdout.reconfigure(line_buffering=True)
 ATOM_CAM_IP = os.environ.get("ATOM_CAM_IP", "192.168.2.110")
 ATOM_CAM_RTSP = "rtsp://{}:8554/unicast".format(ATOM_CAM_IP)
 
+# atomcam_toolsでのデフォルトのユーザアカウントなので、自分の環境に合わせて変更してください。
+ATOM_CAM_USER = "root"
+ATOM_CAM_PASS = "atomcam2"
+
 # 動画フレームのリストのqueueを生成する。
 # image_queue = queue.Queue(maxsize=1024)
+
+
+def check_clock():
+    # ATOM Camのクロックとホスト側のクロックの比較。
+    tn = telnetlib.Telnet(ATOM_CAM_IP)
+    tn.read_until(b"login: ")
+    tn.write(ATOM_CAM_USER.encode('ascii') + b"\n")
+    tn.read_until(b"Password: ")
+    tn.write(ATOM_CAM_PASS.encode('ascii') + b"\n")
+
+    tn.read_until(b"# ")
+    tn.write(b"date\n")
+    atom_date = str(tn.read_until(b"# ")).split("\\r\\n")[1]
+    utc_now = datetime.now(timezone.utc)
+    atom_now = datetime.strptime(atom_date, "%a %b %d %H:%M:%S %Z %Y")
+    atom_now = atom_now.replace(tzinfo=timezone.utc)
+    print("# ATOM Cam =", atom_now)
+    print("# HOST PC  =", utc_now)
+    print("# ATOM Cam - Host PC = {}".format(atom_now - utc_now))
 
 
 def composite(list_images):
@@ -72,7 +97,7 @@ def detect(img):
 
 
 class AtomCam:
-    def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600"):
+    def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600", clock=False):
         self._running = False
         # video device url or movie file path
         self.capture = None
@@ -100,6 +125,10 @@ class AtomCam:
 
         print("# end_time = ", self.end_time)
 
+        if clock:
+            # 内蔵時計のチェック
+            check_clock()
+
         # 時刻表示部分のマスクを作成
         zero = np.zeros((1080, 1920, 3), np.uint8)
         self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
@@ -107,6 +136,12 @@ class AtomCam:
         self.image_queue = queue.Queue(maxsize=100)
 
     def __del__(self):
+        now = datetime.now()
+        obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(
+            now.year, now.month, now.day, now.hour, now.minute, now.second
+        )
+        print("# {} stop".format(obs_time))
+
         self.capture.release()
         cv2.destroyAllWindows()
 
@@ -405,8 +440,14 @@ def streaming(args):
 
 
 def streaming_thread(args):
+    now = datetime.now()
+    obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(
+        now.year, now.month, now.day, now.hour, now.minute, now.second
+    )
+    print("# {} start".format(obs_time))
+
     # スレッド版の流星検出
-    atom = AtomCam(args.url, args.output, args.to)
+    atom = AtomCam(args.url, args.output, args.to, args.clock)
     t_in = threading.Thread(target=atom.queue_streaming)
     t_in.start()
 
@@ -439,6 +480,7 @@ if __name__ == '__main__':
 
     # threadモードのテスト用
     parser.add_argument('--thread', action='store_true', help='スレッドテスト版')
+    parser.add_argument('-c', '--clock', action='store_true', help='カメラの時刻チェック')
 
     parser.add_argument('--help', action='help', help='show this help message and exit')
 

@@ -5,6 +5,7 @@ Automatic detecton of meteors in movie files and streaming devices(RTSP)
 
 無保証、無サポートです。
 
+元々、人に公開する目的で作ったのではなく、ソースコードのコメントも自分のためのメモ程度で極めて不親切。
 予告なしに仕様変更、機能追加(削除)を行います。
 
 ## 概要
