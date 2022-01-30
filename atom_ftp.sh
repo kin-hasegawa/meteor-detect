@@ -1,7 +1,8 @@
 #!/bin/bash
 
-ATOMCAM_IP='192.168.2.111'
-ATOMCAM_USER=roor
+# 下記の接続情報を自分の環境に合わせて修正してください。
+ATOMCAM_IP='192.168.2.110'
+ATOMCAM_USER=root
 ATOMCAM_PASS=atomcam2
 
 WGET=`which wget`" -r -nv -nH -cut-dir=3"
