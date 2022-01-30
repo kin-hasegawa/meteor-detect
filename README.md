@@ -191,9 +191,9 @@ export ATOM_CAM_IP=192.168.2.110
 以下は、コマンドオプションの一覧。
 
 ```
-% ./atomcam.py --help
+% ./atomcam.py --help     
 usage: atomcam.py [-u URL] [-n] [-d DATE] [-h HOUR] [-m MINUTE] [-i INPUT] [-e EXPOSURE] [-o OUTPUT] [-t TO] [--thread]
-                  [--help]
+                  [-c] [--help]
 
 optional arguments:
   -u URL, --url URL     RTSPのURL、または動画(MP4)ファイル
@@ -210,6 +210,7 @@ optional arguments:
                         検出画像の出力先ディレクトリ名
   -t TO, --to TO        終了時刻(JST) "hhmm" 形式(ex. 0600)
   --thread              スレッドテスト版
+  -c, --clock           カメラの時刻チェック
   --help                show this help message and exit
 ```
 

@@ -412,6 +412,7 @@ def detect_meteor(args):
 def streaming(args):
     '''
     RTSPストリーミング、及び動画ファイルからの流星の検出
+    (スレッドなし版、いずれ削除する。)
     '''
     if args.url:
         atom = AtomCam(args.url, args.output, args.to)
@@ -440,6 +441,14 @@ def streaming(args):
 
 
 def streaming_thread(args):
+    '''
+    RTSPストリーミング、及び動画ファイルからの流星の検出(スレッド版)
+    '''
+    if args.url:
+        atom = AtomCam(args.url, args.output, args.to, args.clock)
+        if not atom.capture.isOpened():
+            return
+
     now = datetime.now()
     obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(
         now.year, now.month, now.day, now.hour, now.minute, now.second
@@ -447,7 +456,6 @@ def streaming_thread(args):
     print("# {} start".format(obs_time))
 
     # スレッド版の流星検出
-    atom = AtomCam(args.url, args.output, args.to, args.clock)
     t_in = threading.Thread(target=atom.queue_streaming)
     t_in.start()
 
@@ -478,8 +486,8 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', default=None, help='検出画像の出力先ディレクトリ名')
     parser.add_argument('-t', '--to', default="0600", help='終了時刻(JST) "hhmm" 形式(ex. 0600)')
 
-    # threadモードのテスト用
-    parser.add_argument('--thread', action='store_true', help='スレッドテスト版')
+    # threadモード
+    parser.add_argument('--thread', default=True, action='store_true', help='スレッドテスト版')
     parser.add_argument('-c', '--clock', action='store_true', help='カメラの時刻チェック')
 
     parser.add_argument('--help', action='help', help='show this help message and exit')
@@ -490,8 +498,8 @@ if __name__ == '__main__':
         # 日付がある場合はファイル(ATOMCam形式のファイル)から流星検出
         detect_meteor(args)
     elif args.thread:
-        # スレッド版テスト用
+        # ストリーミング/動画(MP4)の再生、流星検出
         streaming_thread(args)
     else:
-        # ストリーミング/動画(MP4)の再生
+        # ストリーミング/動画(MP4)の再生(旧バージョン)
         streaming(args)
