@@ -200,8 +200,8 @@ class AtomCam:
                 img_list.append(frame)
 
             if len(img_list) > 2:
-                self.detect_meteor(img_list)
                 self.composite_img = brightest(img_list)
+                self.detect_meteor(img_list)
                 if not no_window:
                     cv2.imshow('ATOM Cam2 x {} frames '.format(len(img_list)), self.composite_img)
 
