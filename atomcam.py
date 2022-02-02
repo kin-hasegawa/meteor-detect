@@ -28,11 +28,45 @@ ATOM_CAM_RTSP = "rtsp://{}:8554/unicast".format(ATOM_CAM_IP)
 ATOM_CAM_USER = "root"
 ATOM_CAM_PASS = "atomcam2"
 
-# 動画フレームのリストのqueueを生成する。
-# image_queue = queue.Queue(maxsize=1024)
+
+class AtomTelnet():
+    '''
+    ATOM Camにtelnet接続し、コマンドを実行するクラス
+    '''
+    def __init__(self, ip_address=ATOM_CAM_IP):
+        self.tn = telnetlib.Telnet(ip_address)
+        self.tn.read_until(b"login: ")
+        self.tn.write(ATOM_CAM_USER.encode('ascii') + b"\n")
+        self.tn.read_until(b"Password: ")
+        self.tn.write(ATOM_CAM_PASS.encode('ascii') + b"\n")
+
+        self.tn.read_until(b"# ")
+
+    def exec(self, command):
+        self.tn.write(command.encode('utf-8') + b'\n')
+        ret = self.tn.read_until(b"# ").decode('utf-8').split("\r\n")[1]
+        return ret
+
+    def exit(self):
+        self.tn.write("exit".encode('utf-8') + b"\n")
+
+    def __del__(self):
+        self.exit()
 
 
 def check_clock():
+    # ATOM Camのクロックとホスト側のクロックの比較。
+    tn = AtomTelnet()
+    atom_date = tn.exec('date')
+    utc_now = datetime.now(timezone.utc)
+    atom_now = datetime.strptime(atom_date, "%a %b %d %H:%M:%S %Z %Y")
+    atom_now = atom_now.replace(tzinfo=timezone.utc)
+    print("# ATOM Cam =", atom_now)
+    print("# HOST PC  =", utc_now)
+    print("# ATOM Cam - Host PC = {}".format(atom_now - utc_now))
+
+
+def check_clock2():
     # ATOM Camのクロックとホスト側のクロックの比較。
     tn = telnetlib.Telnet(ATOM_CAM_IP)
     tn.read_until(b"login: ")
