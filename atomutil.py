@@ -60,7 +60,8 @@ def make_movie(meteor_list, output="movie.mp4"):
     '''
     検出された流星リストから動画作成(未完成)
     '''
-    data_dir = Path(meteor_list).stem
+    data_dir = Path(meteor_list).parents[0]
+    date_dir = Path(meteor_list).stem
 
     # とりあえずATOM Camサイズ
     size = (1920, 1080)
@@ -77,7 +78,7 @@ def make_movie(meteor_list, output="movie.mp4"):
 
             hh, mm, ss = time.split(':')
             filename = "{}{}{}{}.jpg".format(date_str, hh, mm, ss)
-            file_path = str(Path(data_dir, filename))
+            file_path = str(Path(data_dir, date_dir, filename))
 
             print(file_path)
             img = cv2.imread(file_path)
