@@ -3,27 +3,32 @@
 from pathlib import Path
 import argparse
 import cv2
-from datetime import datetime, timedelta, timezone
-import telnetlib
 
-from atomcam import DetectMeteor, ATOM_CAM_IP, check_clock
+from atomcam import DetectMeteor, ATOM_CAM_IP, ATOM_CAM_USER, ATOM_CAM_PASS, check_clock
 
 
-def make_ftpcmd(meteor_list):
+def make_ftpcmd(meteor_list, directory):
     '''
     検出されたログから画像をダウンロードするFTPコマンドを生成する。
     '''
+    wget = "wget -nc -r -nv -nH --cut-dirs=3"
+    if directory:
+        wget += " -P {}".format(directory)
+
     with open(meteor_list, "r") as f:
         for line in f.readlines():
             if line.startswith('#'):
                 continue
 
+            # 検出時刻から動画ファイル名を生成する。
             (date, time) = line.split()[0:2]
             hh, mm, ss = time.split(':')
-
             date_dir = ''.join(date.split('/'))
-
-            print("wget -nc -r -nv -nH --cut-dirs=3 ftp://root:atomcam2@{}/media/mmc/record/{}/{}/{}.mp4".format(ATOM_CAM_IP, date_dir, hh, mm))
+            mp4_file = "{}/{}/{}.mp4".format(date_dir, hh, mm)
+            url = "ftp://{}:{}@{}/media/mmc/record/{}".format(
+                ATOM_CAM_USER, ATOM_CAM_PASS, ATOM_CAM_IP, mp4_file
+            )
+            print("{} {}".format(wget, url))
 
 
 def detect_meteors(meteor_list):
@@ -86,6 +91,7 @@ if __name__ == '__main__':
 
     parser.add_argument('meteors', nargs='?', help="List of detected meteors (text file)")
     parser.add_argument('-f', '--ftp', action='store_true', help='FTPコマンド作成')
+    parser.add_argument('-d', '--directory', default=None, help='FTPコマンド取得先ディレクトリ名')
     parser.add_argument('-m', '--movie', action='store_true', help='FTPコマンド作成')
     parser.add_argument('-o', '--output', default='movie.mp4', help='動画ファイル名(.mp4)')
     parser.add_argument('-c', '--clock', action='store_true', help='ATOM Camの時計のチェック')
@@ -95,7 +101,7 @@ if __name__ == '__main__':
     # print("# {}".format(args.meteors))
 
     if args.ftp:
-        make_ftpcmd(args.meteors)
+        make_ftpcmd(args.meteors, args.directory)
     elif args.movie:
         make_movie(args.meteors, args.output)
     elif args.clock:

@@ -157,7 +157,7 @@ class AtomCam:
         if now > self.end_time:
             self.end_time = self.end_time + timedelta(hours=24)
 
-        print("# end_time = ", self.end_time)
+        print("# scheduled end_time = ", self.end_time)
 
         if clock:
             # 内蔵時計のチェック
