@@ -344,6 +344,9 @@ class DetectMeteor():
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
         self.FPS = self.capture.stream.get(cv2.CAP_PROP_FPS)
+        if self.FPS < 1.0:
+            # 正しく入っていない場合があるので、その場合は15固定にする(ATOM Cam限定)。
+            self.FPS = 15
 
         # file_pathから日付、時刻を取得する。
         date_element = file_path.split('/')
@@ -392,6 +395,7 @@ class DetectMeteor():
             number = len(img_list)
             count += 1
 
+            # print(number, num_frames)
             if number > 2:
                 try:
                     diff_img = brightest(diff(img_list, self.mask))
@@ -406,9 +410,6 @@ class DetectMeteor():
                 except Exception as e:
                     # print(traceback.format_exc(), file=sys.stderr)
                     print(e, file=sys.stderr)
-
-            else:
-                return 1
 
 
 def detect_meteor(args):
@@ -433,7 +434,7 @@ def detect_meteor(args):
 
     if args.minute:
         # 1分間の単体のmp4ファイルの処理
-        print(file_path)
+        print("#", file_path)
         detecter = DetectMeteor(str(file_path))
         detecter.meteor(args.exposure, args.output)
     else:
