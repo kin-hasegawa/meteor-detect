@@ -298,8 +298,9 @@ class AtomCam:
                     break
 
                 if key == 's' and composite_img:
-                    # 直前のコンポジット画像があれば保存する。
-                    print(key)
+                    # 直前のコンポジット画像があれば保存する(未実装)。
+                    # print(key)
+                    pass
 
                 img_list.append(frame)
 
@@ -367,7 +368,7 @@ class DetectMeteor():
         else:
             output_dir = Path('.')
 
-        print(output_dir)
+        # print(output_dir)
 
         num_frames = int(self.FPS * exposure)
         composite_img = None
