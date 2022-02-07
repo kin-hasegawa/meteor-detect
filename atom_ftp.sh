@@ -5,7 +5,7 @@ ATOMCAM_IP='192.168.2.110'
 ATOMCAM_USER=root
 ATOMCAM_PASS=atomcam2
 
-WGET=`which wget`" -r -nv -nH -cut-dir=3"
+WGET=`which wget`" -nc -r -nv -nH --cut-dir=3"
 
 ATOMCAM_FTP="ftp://${ATOMCAM_USER}:${ATOMCAM_PASS}@${ATOMCAM_IP}/media/mmc/record"
 
