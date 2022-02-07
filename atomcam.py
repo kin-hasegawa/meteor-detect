@@ -367,8 +367,6 @@ class DetectMeteor():
         else:
             output_dir = Path('.')
 
-        print(output_dir)
-
         num_frames = int(self.FPS * exposure)
         composite_img = None
 
