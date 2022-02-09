@@ -4,7 +4,8 @@ from pathlib import Path
 import argparse
 import cv2
 
-from atomcam import DetectMeteor, ATOM_CAM_IP, ATOM_CAM_USER, ATOM_CAM_PASS, check_clock
+from atomcam import DetectMeteor, ATOM_CAM_IP, ATOM_CAM_USER, ATOM_CAM_PASS
+from atomcam import check_clock, set_clock
 
 
 def make_ftpcmd(meteor_list, directory):
@@ -96,6 +97,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--movie', action='store_true', help='FTPコマンド作成')
     parser.add_argument('-o', '--output', default='movie.mp4', help='動画ファイル名(.mp4)')
     parser.add_argument('-c', '--clock', action='store_true', help='ATOM Camの時計のチェック')
+    parser.add_argument('-s', '--set_clock', action='store_true', help='ATOM Camの時計をホスト側に合わせる')
 
     args = parser.parse_args()
 
@@ -107,5 +109,7 @@ if __name__ == '__main__':
         make_movie(args.meteors, args.output)
     elif args.clock:
         check_clock()
+    elif args.set_clock:
+        set_clock()
     else:
         detect_meteors(args.meteors)
