@@ -55,34 +55,33 @@ class AtomTelnet():
 
 
 def check_clock():
-    # ATOM Camのクロックとホスト側のクロックの比較。
+    """ATOM Camのクロックとホスト側のクロックの比較。
+    """
     tn = AtomTelnet()
     atom_date = tn.exec('date')
     utc_now = datetime.now(timezone.utc)
     atom_now = datetime.strptime(atom_date, "%a %b %d %H:%M:%S %Z %Y")
     atom_now = atom_now.replace(tzinfo=timezone.utc)
+    dt = atom_now - utc_now
+    if dt.days < 0:
+        delta = -(86400.0 - (dt.seconds + dt.microseconds/1e6))
+    else:
+        delta = dt.seconds + dt.microseconds/1e6
+
     print("# ATOM Cam =", atom_now)
     print("# HOST PC  =", utc_now)
-    print("# ATOM Cam - Host PC = {}".format(atom_now - utc_now))
+    print("# ATOM Cam - Host PC = {}".format(delta))
 
 
-def check_clock2():
-    # ATOM Camのクロックとホスト側のクロックの比較。
-    tn = telnetlib.Telnet(ATOM_CAM_IP)
-    tn.read_until(b"login: ")
-    tn.write(ATOM_CAM_USER.encode('ascii') + b"\n")
-    tn.read_until(b"Password: ")
-    tn.write(ATOM_CAM_PASS.encode('ascii') + b"\n")
-
-    tn.read_until(b"# ")
-    tn.write(b"date\n")
-    atom_date = str(tn.read_until(b"# ")).split("\\r\\n")[1]
+def set_clock():
+    """ATOM Camのクロックとホスト側のクロックに合わせる。
+    """
     utc_now = datetime.now(timezone.utc)
-    atom_now = datetime.strptime(atom_date, "%a %b %d %H:%M:%S %Z %Y")
-    atom_now = atom_now.replace(tzinfo=timezone.utc)
-    print("# ATOM Cam =", atom_now)
-    print("# HOST PC  =", utc_now)
-    print("# ATOM Cam - Host PC = {}".format(atom_now - utc_now))
+
+    set_command = 'date -s "{}"'.format(utc_now.strftime("%Y-%m-%d %H:%M:%S"))
+    print(set_command)
+    tn = AtomTelnet()
+    tn.exec(set_command)
 
 
 def composite(list_images):
