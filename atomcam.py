@@ -34,6 +34,11 @@ class AtomTelnet():
     ATOM Camにtelnet接続し、コマンドを実行するクラス
     '''
     def __init__(self, ip_address=ATOM_CAM_IP):
+        """AtomTelnetのコンストラクタ
+
+        Args:
+          ip_address: Telnet接続先のIPアドレス
+        """
         self.tn = telnetlib.Telnet(ip_address)
         self.tn.read_until(b"login: ")
         self.tn.write(ATOM_CAM_USER.encode('ascii') + b"\n")
@@ -43,6 +48,14 @@ class AtomTelnet():
         self.tn.read_until(b"# ")
 
     def exec(self, command):
+        """Telnet経由でコマンドを実行する。
+
+        Args:
+          command : 実行するコマンド(ex. "ls")
+
+        Returns:
+          コマンド実行結果文字列。1行のみ。
+        """
         self.tn.write(command.encode('utf-8') + b'\n')
         ret = self.tn.read_until(b"# ").decode('utf-8').split("\r\n")[1]
         return ret
@@ -70,7 +83,7 @@ def check_clock():
 
     print("# ATOM Cam =", atom_now)
     print("# HOST PC  =", utc_now)
-    print("# ATOM Cam - Host PC = {}".format(delta))
+    print("# ATOM Cam - Host PC = {:.3f} sec".format(delta))
 
 
 def set_clock():
@@ -85,7 +98,8 @@ def set_clock():
 
 
 def composite(list_images):
-    # 画像リストの合成
+    """画像リストの合成
+    """
     equal_fraction = 1.0 / (len(list_images))
 
     output = np.zeros_like(list_images[0])
@@ -99,7 +113,8 @@ def composite(list_images):
 
 
 def brightest(img_list):
-    # 比較明合成処理
+    """比較明合成処理
+    """
     output = img_list[0]
 
     for img in img_list[1:]:
@@ -109,7 +124,8 @@ def brightest(img_list):
 
 
 def diff(img_list, mask):
-    # 画像リストから差分画像のリストを作成する。
+    """画像リストから差分画像のリストを作成する。
+    """
     diff_list = []
     for img1, img2 in zip(img_list[:-2], img_list[1:]):
         img1 = cv2.bitwise_or(img1, mask)
@@ -120,7 +136,8 @@ def diff(img_list, mask):
 
 
 def detect(img):
-    # 画像上の線状のパターンを流星として検出する。
+    """画像上の線状のパターンを流星として検出する。
+    """
     blur_size = (5, 5)
     blur = cv2.GaussianBlur(img, blur_size, 0)
     canny = cv2.Canny(blur, 100, 200, 3)
@@ -188,7 +205,8 @@ class AtomCam:
         self._running = False
 
     def queue_streaming(self):
-        # RTSP読み込みをthreadで行い、queueにデータを流し込む。
+        """RTSP読み込みをthreadで行い、queueにデータを流し込む。
+        """
         print("# threading version started.")
         frame_count = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT))
         self._running = True
@@ -213,7 +231,8 @@ class AtomCam:
                 continue
 
     def dequeue_streaming(self, exposure=1, no_window=False):
-        # queueからデータを読み出し流星検知、描画を行う。
+        """queueからデータを読み出し流星検知、描画を行う。
+        """
         num_frames = int(self.FPS * exposure)
 
         while True:
@@ -246,7 +265,8 @@ class AtomCam:
                 return
 
     def detect_meteor(self, img_list):
-        # img_listで与えられた画像のリストから流星(移動天体)を検出する。
+        """img_listで与えられた画像のリストから流星(移動天体)を検出する。
+        """
         now = datetime.now()
         obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
 
@@ -264,14 +284,17 @@ class AtomCam:
                 print(e, file=sys.stderr)
 
     def streaming(self, exposure, no_window):
-        '''
+        """
         ストリーミング再生
+
+        Args:
           exposure: 比較明合成する時間(sec)
           no_window: True .. 画面表示しない
 
-          return 0 終了
-          return 1 異常終了
-        '''
+        Returns:
+          0: 終了
+          1: 異常終了
+        """
         num_frames = int(self.FPS * exposure)
         composite_img = None
 
@@ -336,9 +359,9 @@ class AtomCam:
 
 
 class DetectMeteor():
-    '''
+    """
     動画ファイル(MP4)からの流星の検出
-    '''
+    """
     def __init__(self, file_path):
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
@@ -361,9 +384,8 @@ class DetectMeteor():
         self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
 
     def meteor(self, exposure=1, output=None):
-        '''
-        流星の検出
-        '''
+        """流星の検出
+        """
         if output:
             output_dir = Path(output)
             output_dir.mkdir(exist_ok=True)
@@ -412,9 +434,9 @@ class DetectMeteor():
 
 
 def detect_meteor(args):
-    '''
+    """
     ATOM Cam形式の動画ファイルからの流星の検出
-    '''
+    """
     if args.input:
         # 入力ファイルのディレクトリの指定がある場合
         input_dir = Path(args.input)
@@ -445,10 +467,10 @@ def detect_meteor(args):
 
 
 def streaming(args):
-    '''
+    """
     RTSPストリーミング、及び動画ファイルからの流星の検出
     (スレッドなし版、いずれ削除する。)
-    '''
+    """
     if args.url:
         atom = AtomCam(args.url, args.output, args.to)
         if not atom.capture.isOpened():
@@ -476,9 +498,9 @@ def streaming(args):
 
 
 def streaming_thread(args):
-    '''
+    """
     RTSPストリーミング、及び動画ファイルからの流星の検出(スレッド版)
-    '''
+    """
     if args.url:
         atom = AtomCam(args.url, args.output, args.to, args.clock)
         if not atom.capture.isOpened():
