@@ -89,11 +89,10 @@ def check_clock():
 def set_clock():
     """ATOM Camのクロックとホスト側のクロックに合わせる。
     """
+    tn = AtomTelnet()
     utc_now = datetime.now(timezone.utc)
-
     set_command = 'date -s "{}"'.format(utc_now.strftime("%Y-%m-%d %H:%M:%S"))
     print(set_command)
-    tn = AtomTelnet()
     tn.exec(set_command)
 
 
@@ -371,7 +370,8 @@ class DetectMeteor():
             self.FPS = 15
 
         # file_pathから日付、時刻を取得する。
-        date_element = file_path.split('/')
+        # date_element = file_path.split('/')
+        date_element = file_path.split(os.sep)
         self.date_dir = date_element[-3]
         self.date = datetime.strptime(self.date_dir, "%Y%m%d")
 
@@ -451,7 +451,7 @@ def detect_meteor(args):
             # 1分間のファイル単体の処理
             file_path = Path(data_dir, "{}.mp4".format(args.minute))
 
-    # print(data_dir)
+    print(data_dir)
 
     if args.minute:
         # 1分間の単体のmp4ファイルの処理
