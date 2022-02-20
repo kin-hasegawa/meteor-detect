@@ -1,7 +1,7 @@
 # meteor-detect
 
 ATOMCamのストリーミング及びデータからの流星を自動検出<br>
-Automatic detecton of meteors in movie files and streaming devices(RTSP)
+Automatic detecton of meteors from movie files and streaming devices(RTSP)
 
 無保証、無サポートです。
 
@@ -42,7 +42,7 @@ Automatic detecton of meteors in movie files and streaming devices(RTSP)
 
 ### atomcam-toolsのインストール
 
-atomcam-tools は、ATOM Cam RTSPサーバー、FTP、TELNETサーバー等の機能を追加するツールである。カメラ上でLinuxのカーネルを稼働させて、それらの機能を提供している。
+atomcam-tools は、[hanyeylab](https://honeylab.hatenablog.jp/about) さんが作成された ATOM Cam RTSPサーバー、FTP、TELNETサーバー等の機能を追加するツールである。カメラ上でLinuxのカーネルを稼働させて、それらの機能を提供している。
 SDカードにダウンロードしたファイルをコピーしてカメラの再起動を行うだけでインストールができる。
 
 以下のサイトから atomcam_tools.zip をダウンロードしてATOM Cam2にインストールする。
@@ -53,6 +53,12 @@ SDカードにダウンロードしたファイルをコピーしてカメラの
 インストール直後して、ATOM Camを再起動すると使えるようになる。
 telnetでカメラにrootアカウントでログインすることができる。デフォルトのパスワードはカメラの名前(ATOM Cam2の場合は'atomcam2')。
 ただし、メーカーサポート外の使い方になるので、今後 ATOM Cam側のファームウェアのアップデートによってはこのツールが使えなくなる可能性もあるので自己責任でどうぞ。
+
+haneylabさんのオリジナルに対して改良版で、SSHなども追加されたものもあるが、ここではオリジナル版のみに対応している。
+動作については未確認であるが、改良版ではtelnetの代わりにSSHを使っているので、内部でATOM Camの時刻を取得するところで動作しない可能性がある。
+
+- [atomcam_tools改良版](https://github.com/mnakada/atomcam_tools)
+
 
 カメラのIPアドレスは、ATOM Camのアプリのデバイス情報で確認することができる。下記の例は私のローカルネットワーク内のカメラのIPで接続した例。
 
@@ -125,9 +131,19 @@ Python仮想環境の作り方については「Python 仮想環境 venv」な�
 1. 移動天体の中から流星と思われる直線状のパターンを検出する。
 1. 検出メッセージ(時刻)を出力し、その比較明合成画像を保存する。
 
+流星を検出する際に、画面右下のタイムスタンプでノイズが出ることがあったのでタイムスタンプ部分にマスクをかけている。
+その他、地上の建物に光が当たったり、電線が揺れた場合でもノイズを疲労ことがあるので環境に合わせてマスクをかけた方が誤認識は減るはずである。
+
+
 ```
 def brightest(img_list):
-    # 比較明合成処理
+    """比較明合成処理
+    Args:
+      img_list: 画像データのリスト
+
+    Returns:
+      比較明合成された画像
+    """
     output = img_list[0]
 
     for img in img_list[1:]:
@@ -137,7 +153,15 @@ def brightest(img_list):
 
 
 def diff(img_list, mask):
-    # 画像リストから差分画像のリストを作成する。
+    """画像リストから差分画像のリストを作成する。
+
+    Args:
+      img_list: 画像データのリスト
+      mask: マスク画像(2値画像)
+
+    Returns:
+      差分画像のリスト
+    """
     diff_list = []
     for img1, img2 in zip(img_list[:-2], img_list[1:]):
         img1 = cv2.bitwise_or(img1, mask)
@@ -159,7 +183,12 @@ def diff(img_list, mask):
 
 ```
 def detect(img):
-    # 画像上の線状のパターンを流星として検出する。
+    """画像上の線状のパターンを流星として検出する。
+    Args:
+      img: 検出対象となる画像
+    Returns:
+      検出結果
+    """
     blur_size = (5, 5)
     blur = cv2.GaussianBlur(img, blur_size, 0)
     canny = cv2.Canny(blur, 100, 200, 3)

@@ -97,7 +97,13 @@ def set_clock():
 
 
 def composite(list_images):
-    """画像リストの合成
+    """画像リストの合成(単純スタッキング)
+
+    Args:
+      list_images: 画像データのリスト
+
+    Returns:
+      合成された画像
     """
     equal_fraction = 1.0 / (len(list_images))
 
@@ -113,6 +119,11 @@ def composite(list_images):
 
 def brightest(img_list):
     """比較明合成処理
+    Args:
+      img_list: 画像データのリスト
+
+    Returns:
+      比較明合成された画像
     """
     output = img_list[0]
 
@@ -124,6 +135,13 @@ def brightest(img_list):
 
 def diff(img_list, mask):
     """画像リストから差分画像のリストを作成する。
+
+    Args:
+      img_list: 画像データのリスト
+      mask: マスク画像(2値画像)
+
+    Returns:
+      差分画像のリスト
     """
     diff_list = []
     for img1, img2 in zip(img_list[:-2], img_list[1:]):
@@ -136,6 +154,10 @@ def diff(img_list, mask):
 
 def detect(img):
     """画像上の線状のパターンを流星として検出する。
+    Args:
+      img: 検出対象となる画像
+    Returns:
+      検出結果
     """
     blur_size = (5, 5)
     blur = cv2.GaussianBlur(img, blur_size, 0)
