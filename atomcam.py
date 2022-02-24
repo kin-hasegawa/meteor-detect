@@ -473,7 +473,7 @@ def detect_meteor(args):
             # 1分間のファイル単体の処理
             file_path = Path(data_dir, "{}.mp4".format(args.minute))
 
-    print(data_dir)
+    print("# {}".format(data_dir))
 
     if args.minute:
         # 1分間の単体のmp4ファイルの処理
@@ -482,7 +482,7 @@ def detect_meteor(args):
         detecter.meteor(args.exposure, args.output)
     else:
         # 1時間内の一括処理
-        for file_path in sorted(Path(data_dir).glob("*.mp4")):
+        for file_path in sorted(Path(data_dir).glob("[0-9][0-9].mp4")):
             print('#', Path(file_path))
             detecter = DetectMeteor(str(file_path))
             detecter.meteor(args.exposure, args.output)
