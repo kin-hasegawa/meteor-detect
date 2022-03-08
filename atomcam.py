@@ -8,6 +8,7 @@ import time
 import argparse
 import numpy as np
 import cv2
+import pafy
 from imutils.video import FileVideoStream
 import telnetlib
 
@@ -172,7 +173,14 @@ class AtomCam:
         self._running = False
         # video device url or movie file path
         self.capture = None
-        self.url = video_url
+
+        if "youtube" in video_url:
+            video = pafy.new(video_url)
+            best = video.getbest(preftype="mp4")
+            self.url = best.url
+        else:
+            self.url = video_url
+
         self.connect()
         self.FPS = self.capture.get(cv2.CAP_PROP_FPS)
 
@@ -219,6 +227,7 @@ class AtomCam:
     def connect(self):
         if self.capture:
             self.capture.release()
+
         self.capture = cv2.VideoCapture(self.url)
 
     def stop(self):

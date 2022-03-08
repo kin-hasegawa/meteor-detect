@@ -60,6 +60,10 @@ def detect_meteors(meteor_list):
 def make_movie(meteor_list, output="movie.mp4"):
     '''
     検出された流星リストから動画作成(未完成)
+
+    Args:
+      meteor_list: 検出された流星のログファイル
+      outout: 出力動画ファイル名
     '''
     data_dir = Path(meteor_list).parents[0]
     date_dir = Path(meteor_list).stem
@@ -67,7 +71,7 @@ def make_movie(meteor_list, output="movie.mp4"):
     # とりあえずATOM Camサイズ
     size = (1920, 1080)
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-    video = cv2.VideoWriter(output, fourcc, 0.5, size)
+    video = cv2.VideoWriter(output, fourcc, 1.0, size)
 
     with open(meteor_list, "r") as f:
         for line in f.readlines():
