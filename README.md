@@ -124,6 +124,24 @@ Python仮想環境の作り方については「Python 仮想環境 venv」な�
 % pip install imutils
 ```
 
+YouTube動画のURLを扱うために下記パッケージが必要になる。
+
+```
+% pip install pafy
+```
+
+ただし、2022/03/08 現在、pipでインストールしたバージョンは一部修正しないと動作しないので注意。
+YouTube動画を扱わない場合は修正しなくても良い。
+
+下記のGitHubからインストールするか、自分でパッチを当てる必要がある。
+
+[mps-youtube/pafy](https://github.com/mps-youtube/pafy/tree/develop/pafy)
+
+詳細は下記を参照。
+
+[Get video info even if no likes/dislikes exist #288](https://github.com/mps-youtube/pafy/pull/288)
+
+
 ## 流星検出方法
 
 1. 流星が流れる時間程度(1~2秒)で比較明合成を行う。
