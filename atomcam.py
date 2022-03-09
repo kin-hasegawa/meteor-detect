@@ -184,14 +184,10 @@ class AtomCam:
             for source in YouTube.keys():
                 if source in video_url:
                     self.source = YouTube[source]
-
-            video = pafy.new(video_url)
-            best = video.getbest(preftype="mp4")
-            self.url = best.url
         else:
-
-            self.url = video_url
             self.source = "ATOMCam"
+
+        self.url = video_url
 
         self.connect()
         self.FPS = self.capture.get(cv2.CAP_PROP_FPS)
@@ -216,7 +212,7 @@ class AtomCam:
 
         print("# scheduled end_time = ", self.end_time)
 
-        if clock:
+        if self.source == "ATOMCam" and clock:
             # 内蔵時計のチェック
             check_clock()
 
@@ -243,7 +239,14 @@ class AtomCam:
         if self.capture:
             self.capture.release()
 
-        self.capture = cv2.VideoCapture(self.url)
+        if self.source in ['Kiso', 'Subaru']:
+            video = pafy.new(self.url)
+            best = video.getbest(preftype="mp4")
+            url = best.url
+        else:
+            url = self.url
+
+        self.capture = cv2.VideoCapture(url)
 
     def stop(self):
         # thread を止める
@@ -267,6 +270,7 @@ class AtomCam:
                             break
                 else:
                     self.connect()
+                    time.sleep(5)
                     continue
 
                 if self._running is False:
