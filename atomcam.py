@@ -29,6 +29,9 @@ ATOM_CAM_RTSP = "rtsp://{}:8554/unicast".format(ATOM_CAM_IP)
 ATOM_CAM_USER = "root"
 ATOM_CAM_PASS = "atomcam2"
 
+# YouTube ライブ配信ソース
+YouTube = {"BjzXPGnix6Q": "Kiso", "eH90mZnmgD4": "Subaru"}
+
 
 class AtomTelnet():
     '''
@@ -173,13 +176,22 @@ class AtomCam:
         self._running = False
         # video device url or movie file path
         self.capture = None
+        self.source = None
 
+        # 入力ソースの判定
         if "youtube" in video_url:
+            # YouTube(マウナケア、木曽)
+            for source in YouTube.keys():
+                if source in video_url:
+                    self.source = YouTube[source]
+
             video = pafy.new(video_url)
             best = video.getbest(preftype="mp4")
             self.url = best.url
         else:
+
             self.url = video_url
+            self.source = "ATOMCam"
 
         self.connect()
         self.FPS = self.capture.get(cv2.CAP_PROP_FPS)
@@ -210,7 +222,10 @@ class AtomCam:
 
         # 時刻表示部分のマスクを作成
         zero = np.zeros((1080, 1920, 3), np.uint8)
-        self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
+        if self.source == "Subaru":
+            self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
+        else:
+            self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
 
         self.image_queue = queue.Queue(maxsize=100)
 
@@ -257,6 +272,7 @@ class AtomCam:
                 if self._running is False:
                     break
             except Exception as e:
+                print(type(e), file=sys.stderr)
                 print(e, file=sys.stderr)
                 continue
 
