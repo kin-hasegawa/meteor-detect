@@ -31,6 +31,7 @@ Automatic detecton of meteors from movie files and streaming devices(RTSP)
 
 * PC環境
   * macOS 11, 12 (Intel Mac, M1 Mac) , Ubuntu 20.04LTSで動作確認。
+  * Windows10で動作したという報告もある。
   * Python 3.8以上で動作確認<br>
   (2022/01/20現在、Python3.10 ではOpenCVがまだサポートされていないので、現状は Python3.9まで)
 
@@ -125,6 +126,8 @@ Python仮想環境の作り方については「Python 仮想環境 venv」な�
 % pip install imutils
 ```
 
+#### YouTubeライブストリーミング対応
+
 YouTube動画のURLを扱うために下記パッケージが必要になる。
 
 ```
@@ -138,7 +141,7 @@ YouTube動画を扱わない場合は修正しなくても良い。
 
 [mps-youtube/pafy](https://github.com/mps-youtube/pafy/tree/develop/pafy)
 
-詳細は下記を参照。
+パッチを当てる場合の詳細は下記を参照。
 
 [Get video info even if no likes/dislikes exist #288](https://github.com/mps-youtube/pafy/pull/288)
 
@@ -156,6 +159,12 @@ venv環境の場合は以下のようになる。
 ```
 <venvディレクトリ>/lib/python3.9/site-packages/pafy/backend_youtube_dl.py
 ```
+
+あるいは、pafyの修正版として、本家から分岐した apafy というのがあるので、これが使えるかもしれない。
+
+[apafy 0.5.6.1](https://pypi.org/project/apafy/)
+
+ただし、未確認。
 
 ## 流星検出方法
 
