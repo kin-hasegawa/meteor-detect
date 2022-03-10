@@ -1,7 +1,7 @@
 # meteor-detect
 
 ATOMCamのストリーミング及びデータからの流星を自動検出<br>
-Automatic detecton of meteors from movie files and streaming devices(RTSP)
+Automatic meteor detection from movie files(MP4) and streaming devices(RTSP)
 
 無保証、無サポートです。
 
