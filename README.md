@@ -15,6 +15,7 @@ Automatic detecton of meteors from movie files and streaming devices(RTSP)
 
 * ATOM Cam2 からのストリーミングデータ(RTSP配信)をリアルタイムで解析し、流星を検知すること。
 * ATOM Cam2 による撮影済みの動画データ(MP4)を解析して、流星を検知すること。
+* YouTubeのライブストリーミングデータを解析して、流星を検知すること。(実験中)
 
 実際に使ってみた結果、流星検出能力は人間と同程度。人間も見落とすし、自動検知も見落とす。<br>
 現状、流星と飛行機の区別ができていない場合があるため、最後は該当動画を目視で確認する必要あり。
@@ -141,6 +142,20 @@ YouTube動画を扱わない場合は修正しなくても良い。
 
 [Get video info even if no likes/dislikes exist #288](https://github.com/mps-youtube/pafy/pull/288)
 
+pipでインストールすると最新の0.5.5になるのだが、なぜかバグ修正が反映されていない(2022/03/10現在)。
+`backend_youtube_dl.py` の53, 54行目を以下のように修正する必要がある。
+`backend_youtube_dl.py` の場所はインストール環境によって異なるので注意。
+
+```
+self._likes = self._ydl_info.get('like_count',0)
+self._dislikes = self._ydl_info.get('dislike_count',0)
+```
+
+venv環境の場合は以下のようになる。
+
+```
+<venvディレクトリ>/lib/python3.9/site-packages/pafy/backend_youtube_dl.py
+```
 
 ## 流星検出方法
 
@@ -190,6 +205,8 @@ def diff(img_list, mask):
 ```
 
 画像からの流星の検出方法は下記のサイトで紹介されている方法を参考にした。
+マスク画像はATOM Camのタイムスタンプ更新でノイズが入るのでマスク画像を用意して消すようにした。
+ATOM Cam以外のカメラを使う場合は、別途マスク画像を用意する必要がある。
 
 [D64.NL – METEOR DETECTING PROJECT](https://www.meteornews.net/2020/05/05/d64-nl-meteor-detecting-project/)
 
