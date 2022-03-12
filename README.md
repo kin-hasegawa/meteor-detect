@@ -135,7 +135,8 @@ YouTube動画のURLを扱うために下記パッケージが必要になる。
 % pip install pafy
 ```
 
-ただし、2022/03/08 現在、pipでインストールしたバージョンのpafyは一部修正しないと動作しないので注意。
+ただし、2022/03/08 現在、pipでインストールしたバージョンのpafyは一部修正しないと動作しない場合があるので注意
+(マウナケアでは修正なしで動作したが、木曽の方はエラーとなった)。
 YouTube動画を扱わない場合は修正しなくても良い。
 
 下記のGitHubからインストールするか、自分でパッチを当てる必要がある。
@@ -155,7 +156,7 @@ self._likes = self._ydl_info.get('like_count',0)
 self._dislikes = self._ydl_info.get('dislike_count',0)
 ```
 
-venv環境の場合は以下のようになる。
+要修正ソースファイルは、venv環境の場合は以下のようになる。
 
 ```
 <venvディレクトリ>/lib/python3.9/site-packages/pafy/backend_youtube_dl.py
@@ -490,6 +491,39 @@ ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとフ�
 
 単純にMP4ファイルを指定した場合は、流星検出時刻は推定できないので、現在時刻を表示するみ。
 (開始時刻からの秒数も分かるといいかも)
+
+### YouTubeのライブストリーミングから流星検出を行う。
+
+まだ動作が不安定なことがあり、ネットワーク回線の影響で接続が切れた場合の再接続に失敗する場合がある。
+
+`--url`オプションでYouTube動画のURLを指定する。(URLにはダブルクォートで括る必要あり)
+
+検出時刻はスクリプトを起動しているPCの時刻になる。マウナケアの動画からもJSTで表示するので、画面のタイムスタンプには時差が生じているので注意。加えて撮影カメラからYouTubeを通して配信までに10秒程度の遅延があるので記録された出現時刻にはその程度の誤差がある。
+
+#### マウナケア
+
+```
+% ./atomcam.py --url "https://www.youtube.com/watch?v=eH90mZnmgD4"
+```
+
+<p align="center">
+  <img src="images/20220312000929.jpg" alt="QUA Meteor" width="80%">
+  <br>
+  検出された流星の比較明合成画像。
+</p>
+
+
+#### 東大木曽観測所
+
+```
+% ./atomcam.py --url "https://www.youtube.com/watch?v=BjzXPGnix6Q"
+```
+
+<p align="center">
+  <img src="images/20220311013532.jpg" alt="QUA Meteor" width="80%">
+  <br>
+  検出された流星の比較明合成画像。
+</p>
 
 ## 暫定結果
 
