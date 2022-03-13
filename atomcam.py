@@ -172,7 +172,7 @@ def detect(img):
 
 
 class AtomCam:
-    def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600", clock=False):
+    def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600", clock=False, mask=None):
         self._running = False
         # video device url or movie file path
         self.capture = None
@@ -218,10 +218,15 @@ class AtomCam:
 
         # 時刻表示部分のマスクを作成
         zero = np.zeros((1080, 1920, 3), np.uint8)
-        if self.source == "Subaru":
-            self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
+        if mask:
+            self.mask = cv2.imread(mask)
         else:
-            self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
+            if self.source == "Subaru":
+                # mask SUBRU/Mauna-Kea timestamp
+                self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
+            else:
+                # mask ATOM Cam timestamp
+                self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
 
         self.image_queue = queue.Queue(maxsize=100)
 
@@ -593,6 +598,8 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--exposure', type=int, default=1, help='露出時間(second)')
     parser.add_argument('-o', '--output', default=None, help='検出画像の出力先ディレクトリ名')
     parser.add_argument('-t', '--to', default="0600", help='終了時刻(JST) "hhmm" 形式(ex. 0600)')
+
+    parser.add_argument('--mask', default=None, help="mask image")
 
     # threadモード
     parser.add_argument('--thread', default=True, action='store_true', help='スレッドテスト版')
