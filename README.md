@@ -52,7 +52,7 @@ SDカードにダウンロードしたファイルをコピーしてカメラの
 - [ATOMCam2の機能拡張用ツールを公開しました](https://honeylab.hatenablog.jp/entry/2021/09/24/002107)
 - [ダウンロード](https://github.com/bakueikozo/atomcam_tools/releases/download/v1.0rc/atomcam_tools.zip) はここから。
 
-インストール直後して、ATOM Camを再起動すると使えるようになる。
+インストールして、ATOM Camを再起動すると使えるようになる。
 telnetでカメラにrootアカウントでログインすることができる。デフォルトのパスワードはカメラの名前(ATOM Cam2の場合は'atomcam2')。
 ただし、メーカーサポート外の使い方になるので、今後 ATOM Cam側のファームウェアのアップデートによってはこのツールが使えなくなる可能性もあるので自己責任でどうぞ。
 
