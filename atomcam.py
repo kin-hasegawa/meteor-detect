@@ -191,6 +191,8 @@ class AtomCam:
 
         self.connect()
         self.FPS = self.capture.get(cv2.CAP_PROP_FPS)
+        self.HEIGHT = self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        self.WIDTH = self.capture.get(cv2.CAP_PROP_FRAME_WIDTH)
 
         # 出力先ディレクトリ
         if output:
@@ -211,6 +213,7 @@ class AtomCam:
             self.end_time = self.end_time + timedelta(hours=24)
 
         print("# scheduled end_time = ", self.end_time)
+        self.now = now
 
         if self.source == "ATOMCam" and clock:
             # 内蔵時計のチェック
@@ -330,6 +333,13 @@ class AtomCam:
             # 画像のコンポジット(単純スタック)
             diff_img = brightest(diff(img_list, self.mask))
             try:
+                if now.hour != self.now.hour:
+                    # 毎時空の様子を記録する。
+                    filename = "sky-{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
+                    path_name = str(Path(self.output_dir, filename + ".jpg"))
+                    cv2.imwrite(path_name, self.composite_img)
+                    self.now = now
+
                 if detect(diff_img) is not None:
                     print('{} A possible meteor was detected.'.format(obs_time))
                     filename = "{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
