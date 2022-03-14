@@ -57,9 +57,13 @@ def detect_meteors(meteor_list):
                 prev_file = file_path
 
 
-def make_movie(meteor_list, output="movie.mp4"):
+def make_movie(meteor_list, output="movie.mp4", fps=1.0):
     '''
     検出された流星リストから動画作成(未完成)
+
+    Args:
+      meteor_list: 検出された流星のログファイル
+      outout: 出力動画ファイル名
     '''
     data_dir = Path(meteor_list).parents[0]
     date_dir = Path(meteor_list).stem
@@ -67,7 +71,8 @@ def make_movie(meteor_list, output="movie.mp4"):
     # とりあえずATOM Camサイズ
     size = (1920, 1080)
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-    video = cv2.VideoWriter(output, fourcc, 0.5, size)
+    print(f'FPS={fps}')
+    video = cv2.VideoWriter(output, fourcc, fps, size)
 
     with open(meteor_list, "r") as f:
         for line in f.readlines():
@@ -98,6 +103,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', default='movie.mp4', help='動画ファイル名(.mp4)')
     parser.add_argument('-c', '--clock', action='store_true', help='ATOM Camの時計のチェック')
     parser.add_argument('-s', '--set_clock', action='store_true', help='ATOM Camの時計をホスト側に合わせる')
+    parser.add_argument('-F', '--fps', default=1, type=int, help='動画生成時のFPS')
 
     args = parser.parse_args()
 
@@ -106,7 +112,8 @@ if __name__ == '__main__':
     if args.ftp:
         make_ftpcmd(args.meteors, args.directory)
     elif args.movie:
-        make_movie(args.meteors, args.output)
+        make_movie(args.meteors, args.output, args.fps)
+        #make_movie(args.meteors, args.output)
     elif args.clock:
         check_clock()
     elif args.set_clock:

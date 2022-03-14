@@ -8,6 +8,7 @@ import time
 import argparse
 import numpy as np
 import cv2
+import pafy
 from imutils.video import FileVideoStream
 import telnetlib
 
@@ -27,6 +28,9 @@ ATOM_CAM_RTSP = "rtsp://{}:8554/unicast".format(ATOM_CAM_IP)
 # atomcam_toolsでのデフォルトのユーザアカウントなので、自分の環境に合わせて変更してください。
 ATOM_CAM_USER = "root"
 ATOM_CAM_PASS = "atomcam2"
+
+# YouTube ライブ配信ソース
+YouTube = {"BjzXPGnix6Q": "Kiso", "eH90mZnmgD4": "Subaru"}
 
 
 class AtomTelnet():
@@ -97,7 +101,13 @@ def set_clock():
 
 
 def composite(list_images):
-    """画像リストの合成
+    """画像リストの合成(単純スタッキング)
+
+    Args:
+      list_images: 画像データのリスト
+
+    Returns:
+      合成された画像
     """
     equal_fraction = 1.0 / (len(list_images))
 
@@ -113,6 +123,11 @@ def composite(list_images):
 
 def brightest(img_list):
     """比較明合成処理
+    Args:
+      img_list: 画像データのリスト
+
+    Returns:
+      比較明合成された画像
     """
     output = img_list[0]
 
@@ -124,6 +139,13 @@ def brightest(img_list):
 
 def diff(img_list, mask):
     """画像リストから差分画像のリストを作成する。
+
+    Args:
+      img_list: 画像データのリスト
+      mask: マスク画像(2値画像)
+
+    Returns:
+      差分画像のリスト
     """
     diff_list = []
     for img1, img2 in zip(img_list[:-2], img_list[1:]):
@@ -136,6 +158,10 @@ def diff(img_list, mask):
 
 def detect(img):
     """画像上の線状のパターンを流星として検出する。
+    Args:
+      img: 検出対象となる画像
+    Returns:
+      検出結果
     """
     blur_size = (5, 5)
     blur = cv2.GaussianBlur(img, blur_size, 0)
@@ -146,11 +172,23 @@ def detect(img):
 
 
 class AtomCam:
-    def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600", clock=False):
+    def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600", clock=False, mask=None):
         self._running = False
         # video device url or movie file path
         self.capture = None
+        self.source = None
+
+        # 入力ソースの判定
+        if "youtube" in video_url:
+            # YouTube(マウナケア、木曽)
+            for source in YouTube.keys():
+                if source in video_url:
+                    self.source = YouTube[source]
+        else:
+            self.source = "ATOMCam"
+
         self.url = video_url
+
         self.connect()
         self.FPS = self.capture.get(cv2.CAP_PROP_FPS)
 
@@ -174,13 +212,21 @@ class AtomCam:
 
         print("# scheduled end_time = ", self.end_time)
 
-        if clock:
+        if self.source == "ATOMCam" and clock:
             # 内蔵時計のチェック
             check_clock()
 
         # 時刻表示部分のマスクを作成
         zero = np.zeros((1080, 1920, 3), np.uint8)
-        self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
+        if mask:
+            self.mask = cv2.imread(mask)
+        else:
+            if self.source == "Subaru":
+                # mask SUBRU/Mauna-Kea timestamp
+                self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
+            else:
+                # mask ATOM Cam timestamp
+                self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
 
         self.image_queue = queue.Queue(maxsize=100)
 
@@ -197,7 +243,15 @@ class AtomCam:
     def connect(self):
         if self.capture:
             self.capture.release()
-        self.capture = cv2.VideoCapture(self.url)
+
+        if self.source in ['Kiso', 'Subaru']:
+            video = pafy.new(self.url)
+            best = video.getbest(preftype="mp4")
+            url = best.url
+        else:
+            url = self.url
+
+        self.capture = cv2.VideoCapture(url)
 
     def stop(self):
         # thread を止める
@@ -221,11 +275,13 @@ class AtomCam:
                             break
                 else:
                     self.connect()
+                    time.sleep(5)
                     continue
 
                 if self._running is False:
                     break
             except Exception as e:
+                print(type(e), file=sys.stderr)
                 print(e, file=sys.stderr)
                 continue
 
@@ -449,7 +505,7 @@ def detect_meteor(args):
             # 1分間のファイル単体の処理
             file_path = Path(data_dir, "{}.mp4".format(args.minute))
 
-    print(data_dir)
+    print("# {}".format(data_dir))
 
     if args.minute:
         # 1分間の単体のmp4ファイルの処理
@@ -458,7 +514,7 @@ def detect_meteor(args):
         detecter.meteor(args.exposure, args.output)
     else:
         # 1時間内の一括処理
-        for file_path in sorted(Path(data_dir).glob("*.mp4")):
+        for file_path in sorted(Path(data_dir).glob("[0-9][0-9].mp4")):
             print('#', Path(file_path))
             detecter = DetectMeteor(str(file_path))
             detecter.meteor(args.exposure, args.output)
@@ -540,6 +596,8 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--exposure', type=int, default=1, help='露出時間(second)')
     parser.add_argument('-o', '--output', default=None, help='検出画像の出力先ディレクトリ名')
     parser.add_argument('-t', '--to', default="0600", help='終了時刻(JST) "hhmm" 形式(ex. 0600)')
+
+    parser.add_argument('--mask', default=None, help="mask image")
 
     # threadモード
     parser.add_argument('--thread', default=True, action='store_true', help='スレッドテスト版')

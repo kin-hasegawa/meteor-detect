@@ -1,7 +1,7 @@
 # meteor-detect
 
 ATOMCamのストリーミング及びデータからの流星を自動検出<br>
-Automatic detecton of meteors in movie files and streaming devices(RTSP)
+Automatic meteor detection from movie files(MP4) and streaming devices(RTSP)
 
 無保証、無サポートです。
 
@@ -15,6 +15,7 @@ Automatic detecton of meteors in movie files and streaming devices(RTSP)
 
 * ATOM Cam2 からのストリーミングデータ(RTSP配信)をリアルタイムで解析し、流星を検知すること。
 * ATOM Cam2 による撮影済みの動画データ(MP4)を解析して、流星を検知すること。
+* YouTubeのライブストリーミングデータを解析して、流星を検知すること。(実験中)
 
 実際に使ってみた結果、流星検出能力は人間と同程度。人間も見落とすし、自動検知も見落とす。<br>
 現状、流星と飛行機の区別ができていない場合があるため、最後は該当動画を目視で確認する必要あり。
@@ -30,6 +31,7 @@ Automatic detecton of meteors in movie files and streaming devices(RTSP)
 
 * PC環境
   * macOS 11, 12 (Intel Mac, M1 Mac) , Ubuntu 20.04LTSで動作確認。
+  * Windows10で動作したという報告もある。
   * Python 3.8以上で動作確認<br>
   (2022/01/20現在、Python3.10 ではOpenCVがまだサポートされていないので、現状は Python3.9まで)
 
@@ -42,7 +44,7 @@ Automatic detecton of meteors in movie files and streaming devices(RTSP)
 
 ### atomcam-toolsのインストール
 
-atomcam-tools は、ATOM Cam RTSPサーバー、FTP、TELNETサーバー等の機能を追加するツールである。カメラ上でLinuxのカーネルを稼働させて、それらの機能を提供している。
+atomcam-tools は、[hanyeylab](https://honeylab.hatenablog.jp/about) さんが作成された ATOM Cam RTSPサーバー、FTP、TELNETサーバー等の機能を追加するツールである。カメラ上でLinuxのカーネルを稼働させて、それらの機能を提供している。
 SDカードにダウンロードしたファイルをコピーしてカメラの再起動を行うだけでインストールができる。
 
 以下のサイトから atomcam_tools.zip をダウンロードしてATOM Cam2にインストールする。
@@ -50,9 +52,15 @@ SDカードにダウンロードしたファイルをコピーしてカメラの
 - [ATOMCam2の機能拡張用ツールを公開しました](https://honeylab.hatenablog.jp/entry/2021/09/24/002107)
 - [ダウンロード](https://github.com/bakueikozo/atomcam_tools/releases/download/v1.0rc/atomcam_tools.zip) はここから。
 
-インストール直後して、ATOM Camを再起動すると使えるようになる。
+インストールして、ATOM Camを再起動すると使えるようになる。
 telnetでカメラにrootアカウントでログインすることができる。デフォルトのパスワードはカメラの名前(ATOM Cam2の場合は'atomcam2')。
 ただし、メーカーサポート外の使い方になるので、今後 ATOM Cam側のファームウェアのアップデートによってはこのツールが使えなくなる可能性もあるので自己責任でどうぞ。
+
+haneylabさんのオリジナルに対して改良版で、SSHなども追加されたものもあるが、ここではオリジナル版のみに対応している。
+動作については未確認であるが、改良版ではtelnetの代わりにSSHを使っているので、内部でATOM Camの時刻を取得するところで動作しない可能性がある。
+
+- [atomcam_tools改良版](https://github.com/mnakada/atomcam_tools)
+
 
 カメラのIPアドレスは、ATOM Camのアプリのデバイス情報で確認することができる。下記の例は私のローカルネットワーク内のカメラのIPで接続した例。
 
@@ -118,6 +126,48 @@ Python仮想環境の作り方については「Python 仮想環境 venv」な�
 % pip install imutils
 ```
 
+#### YouTubeライブストリーミング対応
+
+YouTube動画のURLを扱うために下記パッケージが必要になる。
+
+```
+% pip install youtube_dl
+% pip install pafy
+```
+
+ただし、2022/03/08 現在、pipでインストールしたバージョンのpafyは一部修正しないと動作しない場合があるので注意
+(マウナケアでは修正なしで動作したが、木曽の方はエラーとなった)。
+YouTube動画を扱わない場合は修正しなくても良い。
+
+下記のGitHubからインストールするか、自分でパッチを当てる必要がある。
+
+[mps-youtube/pafy](https://github.com/mps-youtube/pafy/tree/develop/pafy)
+
+パッチを当てる場合の詳細は下記を参照。
+
+[Get video info even if no likes/dislikes exist #288](https://github.com/mps-youtube/pafy/pull/288)
+
+pipでインストールすると最新の0.5.5になるのだが、なぜかバグ修正が反映されていない(2022/03/10現在)。
+`backend_youtube_dl.py` の53, 54行目を以下のように修正する必要がある。
+`backend_youtube_dl.py` の場所はインストール環境によって異なるので注意。
+
+```
+self._likes = self._ydl_info.get('like_count',0)
+self._dislikes = self._ydl_info.get('dislike_count',0)
+```
+
+要修正ソースファイルは、venv環境の場合は以下のようになる。
+
+```
+<venvディレクトリ>/lib/python3.9/site-packages/pafy/backend_youtube_dl.py
+```
+
+あるいは、pafyの修正版として、本家から分岐した apafy というのがあるので、これが使えるかもしれない。
+
+[apafy 0.5.6.1](https://pypi.org/project/apafy/)
+
+ただし、未確認。
+
 ## 流星検出方法
 
 1. 流星が流れる時間程度(1~2秒)で比較明合成を行う。
@@ -125,9 +175,19 @@ Python仮想環境の作り方については「Python 仮想環境 venv」な�
 1. 移動天体の中から流星と思われる直線状のパターンを検出する。
 1. 検出メッセージ(時刻)を出力し、その比較明合成画像を保存する。
 
+流星を検出する際に、画面右下のタイムスタンプでノイズが出ることがあったのでタイムスタンプ部分にマスクをかけている。
+その他、地上の建物に光が当たったり、電線が揺れた場合でもノイズを疲労ことがあるので環境に合わせてマスクをかけた方が誤認識は減るはずである。
+
+
 ```
 def brightest(img_list):
-    # 比較明合成処理
+    """比較明合成処理
+    Args:
+      img_list: 画像データのリスト
+
+    Returns:
+      比較明合成された画像
+    """
     output = img_list[0]
 
     for img in img_list[1:]:
@@ -137,7 +197,15 @@ def brightest(img_list):
 
 
 def diff(img_list, mask):
-    # 画像リストから差分画像のリストを作成する。
+    """画像リストから差分画像のリストを作成する。
+
+    Args:
+      img_list: 画像データのリスト
+      mask: マスク画像(2値画像)
+
+    Returns:
+      差分画像のリスト
+    """
     diff_list = []
     for img1, img2 in zip(img_list[:-2], img_list[1:]):
         img1 = cv2.bitwise_or(img1, mask)
@@ -147,19 +215,26 @@ def diff(img_list, mask):
     return diff_list
 ```
 
-画像からの流星の検出方法は下記のサイトで紹介されている方法を参考にした。
+マスク画像はATOM Camのタイムスタンプ更新でノイズが入るのでマスク画像を用意して消すようにした。
+ATOM Cam以外のカメラを使う場合は、別途マスク画像を用意する必要がある。
+
+画像からの流星の検出方法は下記のサイトで紹介されている方法を参考にした(R. Sparrius, 2020)。
 
 [D64.NL – METEOR DETECTING PROJECT](https://www.meteornews.net/2020/05/05/d64-nl-meteor-detecting-project/)
 
-その部分を応用したもの。ほぼそのまま。
-流星と飛行機、人工衛星の区別がまだ十分にできていない。また、東京の空ではS/Nが悪いため暗い流星は検出できない。
+まだ流星と飛行機、人工衛星の区別がまだ十分にできていない。また、東京の空ではS/Nが悪いため暗い流星は検出できない。
 
 `minLineLength`の値が検出する線状パターンの長さ。これを長くすると遅い飛行機、人工衛星を除外できるが、経路の短い流星を見落としてしまう。
 
 
 ```
 def detect(img):
-    # 画像上の線状のパターンを流星として検出する。
+    """画像上の線状のパターンを流星として検出する。
+    Args:
+      img: 検出対象となる画像
+    Returns:
+      検出結果
+    """
     blur_size = (5, 5)
     blur = cv2.GaussianBlur(img, blur_size, 0)
     canny = cv2.Canny(blur, 100, 200, 3)
@@ -416,6 +491,39 @@ ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとフ�
 
 単純にMP4ファイルを指定した場合は、流星検出時刻は推定できないので、現在時刻を表示するみ。
 (開始時刻からの秒数も分かるといいかも)
+
+### YouTubeのライブストリーミングから流星検出を行う。
+
+まだ動作が不安定なことがあり、ネットワーク回線の影響で接続が切れた場合の再接続に失敗する場合がある。
+
+`--url`オプションでYouTube動画のURLを指定する。(URLにはダブルクォートで括る必要あり)
+
+検出時刻はスクリプトを起動しているPCの時刻になる。マウナケアの動画からもJSTで表示するので、画面のタイムスタンプには時差が生じているので注意。加えて撮影カメラからYouTubeを通して配信までに10秒程度の遅延があるので記録された出現時刻にはその程度の誤差がある。
+
+#### マウナケア
+
+```
+% ./atomcam.py --url "https://www.youtube.com/watch?v=eH90mZnmgD4"
+```
+
+<p align="center">
+  <img src="images/20220312000929.jpg" alt="QUA Meteor" width="80%">
+  <br>
+  検出された流星の比較明合成画像。
+</p>
+
+
+#### 東大木曽観測所
+
+```
+% ./atomcam.py --url "https://www.youtube.com/watch?v=BjzXPGnix6Q"
+```
+
+<p align="center">
+  <img src="images/20220311013532.jpg" alt="QUA Meteor" width="80%">
+  <br>
+  検出された流星の比較明合成画像。
+</p>
 
 ## 暫定結果
 
