@@ -347,7 +347,7 @@ class AtomCam:
                     cv2.imwrite(path_name, self.composite_img)
 
                     # 検出した動画を保存する。
-                    movie_file = "movie-" + str(Path(self.output_dir, filename + ".mp4"))
+                    movie_file = str(Path(self.output_dir, "movie-" + filename + ".mp4"))
                     self.save_movie(img_list, movie_file)
             except Exception as e:
                 print(e, file=sys.stderr)
