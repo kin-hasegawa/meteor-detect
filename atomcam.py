@@ -190,9 +190,9 @@ class AtomCam:
         self.url = video_url
 
         self.connect()
-        self.FPS = self.capture.get(cv2.CAP_PROP_FPS)
-        self.HEIGHT = self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        self.WIDTH = self.capture.get(cv2.CAP_PROP_FRAME_WIDTH)
+        self.FPS = int(self.capture.get(cv2.CAP_PROP_FPS))
+        self.HEIGHT = int(self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.WIDTH = int(self.capture.get(cv2.CAP_PROP_FRAME_WIDTH))
 
         # 出力先ディレクトリ
         if output:
@@ -345,8 +345,23 @@ class AtomCam:
                     filename = "{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
                     path_name = str(Path(self.output_dir, filename + ".jpg"))
                     cv2.imwrite(path_name, self.composite_img)
+
+                    # 検出した動画を保存する。
+                    movie_file = "movie-" + str(Path(self.output_dir, filename + ".mp4"))
+                    self.save_movie(img_list, movie_file)
             except Exception as e:
                 print(e, file=sys.stderr)
+
+    def save_movie(self, img_list, pathname):
+
+        size = (self.WIDTH, self.HEIGHT)
+        fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+
+        video = cv2.VideoWriter(pathname, fourcc, self.FPS, size)
+        for img in img_list:
+            video.write(img)
+
+        video.release()
 
     def streaming(self, exposure, no_window):
         """
