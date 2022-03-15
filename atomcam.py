@@ -220,10 +220,10 @@ class AtomCam:
             check_clock()
 
         # 時刻表示部分のマスクを作成
-        zero = np.zeros((1080, 1920, 3), np.uint8)
         if mask:
             self.mask = cv2.imread(mask)
         else:
+            zero = np.zeros((1080, 1920, 3), np.uint8)
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
@@ -442,7 +442,7 @@ class DetectMeteor():
     """
     動画ファイル(MP4)からの流星の検出
     """
-    def __init__(self, file_path):
+    def __init__(self, file_path, mask=None):
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
         self.FPS = self.capture.stream.get(cv2.CAP_PROP_FPS)
@@ -461,8 +461,11 @@ class DetectMeteor():
         self.obs_time = "{}/{:02}/{:02} {}:{}".format(self.date.year, self.date.month, self.date.day, self.hour, self.minute)
 
         # 時刻表示部分のマスクを作成
-        zero = np.zeros((1080, 1920, 3), np.uint8)
-        self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
+        if mask:
+            self.mask = cv2.imread(mask)
+        else:
+            zero = np.zeros((1080, 1920, 3), np.uint8)
+            self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
 
     def meteor(self, exposure=1, output=None):
         """流星の検出
@@ -538,12 +541,12 @@ def detect_meteor(args):
         # 1分間の単体のmp4ファイルの処理
         print("#", file_path)
         detecter = DetectMeteor(str(file_path))
-        detecter.meteor(args.exposure, args.output)
+        detecter.meteor(args.exposure, args.output, args.mask)
     else:
         # 1時間内の一括処理
         for file_path in sorted(Path(data_dir).glob("[0-9][0-9].mp4")):
             print('#', Path(file_path))
-            detecter = DetectMeteor(str(file_path))
+            detecter = DetectMeteor(str(file_path), args.mask)
             detecter.meteor(args.exposure, args.output)
 
 
@@ -583,7 +586,7 @@ def streaming_thread(args):
     RTSPストリーミング、及び動画ファイルからの流星の検出(スレッド版)
     """
     if args.url:
-        atom = AtomCam(args.url, args.output, args.to, args.clock)
+        atom = AtomCam(args.url, args.output, args.to, args.clock, args.mask)
         if not atom.capture.isOpened():
             return
 
