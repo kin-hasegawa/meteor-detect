@@ -219,10 +219,11 @@ class AtomCam:
             # 内蔵時計のチェック
             check_clock()
 
-        # 時刻表示部分のマスクを作成
         if mask:
+            # マスク画像指定の場合
             self.mask = cv2.imread(mask)
         else:
+            # 時刻表示部分のマスクを作成
             zero = np.zeros((1080, 1920, 3), np.uint8)
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
@@ -231,7 +232,7 @@ class AtomCam:
                 # mask ATOM Cam timestamp
                 self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
 
-        self.image_queue = queue.Queue(maxsize=100)
+        self.image_queue = queue.Queue(maxsize=200)
 
     def __del__(self):
         now = datetime.now()
@@ -271,7 +272,8 @@ class AtomCam:
                 ret, frame = self.capture.read()
                 if ret:
                     # self.image_queue.put_nowait(frame)
-                    self.image_queue.put(frame)
+                    now = datetime.now()
+                    self.image_queue.put((now, frame))
                     if self.mp4:
                         current_pos = int(self.capture.get(cv2.CAP_PROP_POS_FRAMES))
                         if current_pos >= frame_count:
@@ -296,8 +298,7 @@ class AtomCam:
         while True:
             img_list = []
             for n in range(num_frames):
-                frame = self.image_queue.get()
-
+                (t, frame) = self.image_queue.get()
                 key = chr(cv2.waitKey(1) & 0xFF)
                 if key == 'q':
                     self._running = False
@@ -307,13 +308,22 @@ class AtomCam:
                     self._running = False
                     return
 
-                img_list.append(frame)
+                # exposure time を超えたら終了
+                if len(img_list) == 0:
+                    t0 = t
+                    img_list.append(frame)
+                else:
+                    dt = t - t0
+                    if dt.seconds < exposure:
+                        img_list.append(frame)
+                    else:
+                        break
 
             if len(img_list) > 2:
                 self.composite_img = brightest(img_list)
-                self.detect_meteor(img_list)
                 if not no_window:
-                    cv2.imshow('ATOM Cam2 x {} frames '.format(len(img_list)), self.composite_img)
+                    cv2.imshow('{}'.format(self.source), self.composite_img)
+                self.detect_meteor(img_list)
 
             # ストリーミングの場合、終了時刻を過ぎたなら終了。
             now = datetime.now()
@@ -353,7 +363,13 @@ class AtomCam:
                 print(e, file=sys.stderr)
 
     def save_movie(self, img_list, pathname):
+        """
+        画像リストから動画を作成する。
 
+        Args:
+          imt_list: 画像のリスト
+          pathname: 出力ファイル名
+        """
         size = (self.WIDTH, self.HEIGHT)
         fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
 
@@ -460,12 +476,18 @@ class DetectMeteor():
         self.minute = date_element[-1].split('.')[0]
         self.obs_time = "{}/{:02}/{:02} {}:{}".format(self.date.year, self.date.month, self.date.day, self.hour, self.minute)
 
-        # 時刻表示部分のマスクを作成
         if mask:
+            # マスク画像指定の場合
             self.mask = cv2.imread(mask)
         else:
+            # 時刻表示部分のマスクを作成
             zero = np.zeros((1080, 1920, 3), np.uint8)
-            self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
+            if self.source == "Subaru":
+                # mask SUBRU/Mauna-Kea timestamp
+                self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
+            else:
+                # mask ATOM Cam timestamp
+                self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
 
     def meteor(self, exposure=1, output=None):
         """流星の検出
