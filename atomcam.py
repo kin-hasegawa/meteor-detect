@@ -156,10 +156,11 @@ def diff(img_list, mask):
     return diff_list
 
 
-def detect(img):
+def detect(img, min_length):
     """画像上の線状のパターンを流星として検出する。
     Args:
       img: 検出対象となる画像
+      min_length: HoughLinesPで検出する最短長(ピクセル)
     Returns:
       検出結果
     """
@@ -168,11 +169,12 @@ def detect(img):
     canny = cv2.Canny(blur, 100, 200, 3)
 
     # The Hough-transform algo:
-    return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=30, maxLineGap=5)
+    return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=min_length, maxLineGap=5)
 
 
 class AtomCam:
-    def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600", clock=False, mask=None):
+    def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600",
+                 clock=False, mask=None, minLineLength=30):
         self._running = False
         # video device url or movie file path
         self.capture = None
@@ -232,6 +234,7 @@ class AtomCam:
                 # mask ATOM Cam timestamp
                 self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
 
+        self.min_length = minLineLength
         self.image_queue = queue.Queue(maxsize=200)
 
     def __del__(self):
@@ -350,7 +353,12 @@ class AtomCam:
                     cv2.imwrite(path_name, self.composite_img)
                     self.now = now
 
-                if detect(diff_img) is not None:
+                detected = detect(diff_img, self.min_length)
+                if detected is not None:
+                    '''
+                    for meteor_candidate in detected:
+                        print('{} {} A possible meteor was detected.'.format(obs_time, meteor_candidate))
+                    '''
                     print('{} A possible meteor was detected.'.format(obs_time))
                     filename = "{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
                     path_name = str(Path(self.output_dir, filename + ".jpg"))
@@ -436,7 +444,7 @@ class AtomCam:
                         blur_img = cv2.medianBlur(composite_img, 3)
                         cv2.imshow('ATOM Cam2 x {} frames '.format(number), blur_img)
                         # cv2.imshow('ATOM Cam2 x {} frames '.format(number), composite_img)
-                    if detect(diff_img) is not None:
+                    if detect(diff_img, self.min_length) is not None:
                         print('{} A possible meteor was detected.'.format(obs_time))
                         filename = "{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
                         path_name = str(Path(self.output_dir, filename + ".jpg"))
@@ -458,7 +466,7 @@ class DetectMeteor():
     """
     動画ファイル(MP4)からの流星の検出
     """
-    def __init__(self, file_path, mask=None):
+    def __init__(self, file_path, mask=None, minLineLength=30):
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
         self.FPS = self.capture.stream.get(cv2.CAP_PROP_FPS)
@@ -488,6 +496,8 @@ class DetectMeteor():
             else:
                 # mask ATOM Cam timestamp
                 self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
+
+        self.min_length = minLineLength
 
     def meteor(self, exposure=1, output=None):
         """流星の検出
@@ -526,7 +536,7 @@ class DetectMeteor():
             if number > 2:
                 try:
                     diff_img = brightest(diff(img_list, self.mask))
-                    if detect(diff_img) is not None:
+                    if detect(diff_img, self.min_length) is not None:
                         obs_time = "{}:{}".format(self.obs_time, str(count*exposure).zfill(2))
                         print('{}  A possible meteor was detected.'.format(obs_time))
                         filename = self.date_dir + self.hour + self.minute + str(count*exposure).zfill(2)
@@ -562,8 +572,8 @@ def detect_meteor(args):
     if args.minute:
         # 1分間の単体のmp4ファイルの処理
         print("#", file_path)
-        detecter = DetectMeteor(str(file_path))
-        detecter.meteor(args.exposure, args.output, args.mask)
+        detecter = DetectMeteor(str(file_path), mask=args.mask, minLineLength=args.min_length)
+        detecter.meteor(args.exposure, args.output)
     else:
         # 1時間内の一括処理
         for file_path in sorted(Path(data_dir).glob("[0-9][0-9].mp4")):
@@ -608,7 +618,7 @@ def streaming_thread(args):
     RTSPストリーミング、及び動画ファイルからの流星の検出(スレッド版)
     """
     if args.url:
-        atom = AtomCam(args.url, args.output, args.to, args.clock, args.mask)
+        atom = AtomCam(args.url, args.output, args.to, args.clock, args.mask, args.min_length)
         if not atom.capture.isOpened():
             return
 
@@ -650,9 +660,10 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--to', default="0600", help='終了時刻(JST) "hhmm" 形式(ex. 0600)')
 
     parser.add_argument('--mask', default=None, help="mask image")
+    parser.add_argument('--min_length', type=int, default=30, help="minLineLength of HoghLinesP")
 
     # threadモード
-    parser.add_argument('--thread', default=True, action='store_true', help='スレッドテスト版')
+    parser.add_argument('--thread', default=True, action='store_true', help='スレッド版')
     parser.add_argument('-c', '--clock', action='store_true', help='カメラの時刻チェック')
 
     parser.add_argument('--help', action='help', help='show this help message and exit')
