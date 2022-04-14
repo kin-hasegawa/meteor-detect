@@ -532,7 +532,7 @@ ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとフ�
 #### 東大木曽観測所
 
 ```
-% ./atomcam.py --url "https://www.youtube.com/watch?v=BjzXPGnix6Q"
+% ./atomcam.py --url "https://www.youtube.com/watch?v=b5HlyYHIxik"
 ```
 
 <p align="center">
