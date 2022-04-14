@@ -11,7 +11,7 @@ Automatic meteor detection from movie files(MP4) and streaming devices(RTSP)
 ## 概要
 
 安価なATOM Cam2(防水型の夜間監視カメラ)というオモチャを手に入れて、ベランダに設置して2022年1月4日のしぶんぎ座流星群を撮影した。
-しかし、後から目視で動画から流星を検出するのが大変なので、なんとか自動化できないか検討した。動画を見て数える何倍もの時間をかけて自動流星検知を作成した。でも、楽しい。
+しかし、後から目視で動画から流星を検出するのが大変なので、なんとか自動化できないか検討した。動画を見て数える何倍もの時間をかけて自動流星検知を作成した。でも、楽しい。以下のことを目標に開発。
 
 * ATOM Cam2 からのストリーミングデータ(RTSP配信)をリアルタイムで解析し、流星を検知すること。
 * ATOM Cam2 による撮影済みの動画データ(MP4)を解析して、流星を検知すること。
@@ -166,7 +166,19 @@ self._dislikes = self._ydl_info.get('dislike_count',0)
 
 [apafy 0.5.6.1](https://pypi.org/project/apafy/)
 
-ただし、未確認。
+ただし、未確認(動作したという報告あり)。apafyをインストールして使う場合、atomcam.py の最初の方で、
+
+```
+import pafy
+```
+
+の行を、
+
+```
+import apafy as pafy
+```
+
+とすれば良いはず(私は試していない)。
 
 ## 流星検出方法
 
@@ -228,10 +240,11 @@ ATOM Cam以外のカメラを使う場合は、別途マスク画像を用意す
 
 
 ```
-def detect(img):
+def detect(img, min_length):
     """画像上の線状のパターンを流星として検出する。
     Args:
       img: 検出対象となる画像
+      min_length: HoughLinesPで検出する最短長(ピクセル)
     Returns:
       検出結果
     """
@@ -240,7 +253,7 @@ def detect(img):
     canny = cv2.Canny(blur, 100, 200, 3)
 
     # The Hough-transform algo:
-    return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=30, maxLineGap=5)
+    return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=min_length, maxLineGap=5)
 ```
 
 ## 使い方
@@ -274,9 +287,9 @@ ATOM_CAM_PASS = "atomcam2"
 以下は、コマンドオプションの一覧。
 
 ```
-% ./atomcam.py --help     
-usage: atomcam.py [-u URL] [-n] [-d DATE] [-h HOUR] [-m MINUTE] [-i INPUT] [-e EXPOSURE] [-o OUTPUT] [-t TO] [--thread]
-                  [-c] [--help]
+% ./atomcam.py --help
+usage: atomcam.py [-u URL] [-n] [-d DATE] [-h HOUR] [-m MINUTE] [-i INPUT] [-e EXPOSURE] [-o OUTPUT] [-t TO]
+                  [--mask MASK] [--min_length MIN_LENGTH] [--thread] [-c] [--help]
 
 optional arguments:
   -u URL, --url URL     RTSPのURL、または動画(MP4)ファイル
@@ -292,7 +305,10 @@ optional arguments:
   -o OUTPUT, --output OUTPUT
                         検出画像の出力先ディレクトリ名
   -t TO, --to TO        終了時刻(JST) "hhmm" 形式(ex. 0600)
-  --thread              スレッドテスト版
+  --mask MASK           mask image
+  --min_length MIN_LENGTH
+                        minLineLength of HoghLinesP
+  --thread              スレッド版
   -c, --clock           カメラの時刻チェック
   --help                show this help message and exit
 ```
@@ -516,7 +532,7 @@ ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとフ�
 #### 東大木曽観測所
 
 ```
-% ./atomcam.py --url "https://www.youtube.com/watch?v=BjzXPGnix6Q"
+% ./atomcam.py --url "https://www.youtube.com/watch?v=b5HlyYHIxik"
 ```
 
 <p align="center">

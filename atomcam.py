@@ -156,10 +156,11 @@ def diff(img_list, mask):
     return diff_list
 
 
-def detect(img):
+def detect(img, min_length):
     """画像上の線状のパターンを流星として検出する。
     Args:
       img: 検出対象となる画像
+      min_length: HoughLinesPで検出する最短長(ピクセル)
     Returns:
       検出結果
     """
@@ -168,11 +169,12 @@ def detect(img):
     canny = cv2.Canny(blur, 100, 200, 3)
 
     # The Hough-transform algo:
-    return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=30, maxLineGap=5)
+    return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=min_length, maxLineGap=5)
 
 
 class AtomCam:
-    def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600", clock=False, mask=None):
+    def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600",
+                 clock=False, mask=None, minLineLength=30):
         self._running = False
         # video device url or movie file path
         self.capture = None
@@ -190,7 +192,9 @@ class AtomCam:
         self.url = video_url
 
         self.connect()
-        self.FPS = self.capture.get(cv2.CAP_PROP_FPS)
+        self.FPS = int(self.capture.get(cv2.CAP_PROP_FPS))
+        self.HEIGHT = int(self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.WIDTH = int(self.capture.get(cv2.CAP_PROP_FRAME_WIDTH))
 
         # 出力先ディレクトリ
         if output:
@@ -211,16 +215,18 @@ class AtomCam:
             self.end_time = self.end_time + timedelta(hours=24)
 
         print("# scheduled end_time = ", self.end_time)
+        self.now = now
 
         if self.source == "ATOMCam" and clock:
             # 内蔵時計のチェック
             check_clock()
 
-        # 時刻表示部分のマスクを作成
-        zero = np.zeros((1080, 1920, 3), np.uint8)
         if mask:
+            # マスク画像指定の場合
             self.mask = cv2.imread(mask)
         else:
+            # 時刻表示部分のマスクを作成
+            zero = np.zeros((1080, 1920, 3), np.uint8)
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
@@ -228,7 +234,8 @@ class AtomCam:
                 # mask ATOM Cam timestamp
                 self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
 
-        self.image_queue = queue.Queue(maxsize=100)
+        self.min_length = minLineLength
+        self.image_queue = queue.Queue(maxsize=200)
 
     def __del__(self):
         now = datetime.now()
@@ -268,7 +275,8 @@ class AtomCam:
                 ret, frame = self.capture.read()
                 if ret:
                     # self.image_queue.put_nowait(frame)
-                    self.image_queue.put(frame)
+                    now = datetime.now()
+                    self.image_queue.put((now, frame))
                     if self.mp4:
                         current_pos = int(self.capture.get(cv2.CAP_PROP_POS_FRAMES))
                         if current_pos >= frame_count:
@@ -293,8 +301,7 @@ class AtomCam:
         while True:
             img_list = []
             for n in range(num_frames):
-                frame = self.image_queue.get()
-
+                (t, frame) = self.image_queue.get()
                 key = chr(cv2.waitKey(1) & 0xFF)
                 if key == 'q':
                     self._running = False
@@ -304,13 +311,22 @@ class AtomCam:
                     self._running = False
                     return
 
-                img_list.append(frame)
+                # exposure time を超えたら終了
+                if len(img_list) == 0:
+                    t0 = t
+                    img_list.append(frame)
+                else:
+                    dt = t - t0
+                    if dt.seconds < exposure:
+                        img_list.append(frame)
+                    else:
+                        break
 
             if len(img_list) > 2:
                 self.composite_img = brightest(img_list)
-                self.detect_meteor(img_list)
                 if not no_window:
-                    cv2.imshow('ATOM Cam2 x {} frames '.format(len(img_list)), self.composite_img)
+                    cv2.imshow('{}'.format(self.source), self.composite_img)
+                self.detect_meteor(img_list)
 
             # ストリーミングの場合、終了時刻を過ぎたなら終了。
             now = datetime.now()
@@ -330,13 +346,46 @@ class AtomCam:
             # 画像のコンポジット(単純スタック)
             diff_img = brightest(diff(img_list, self.mask))
             try:
-                if detect(diff_img) is not None:
+                if now.hour != self.now.hour:
+                    # 毎時空の様子を記録する。
+                    filename = "sky-{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
+                    path_name = str(Path(self.output_dir, filename + ".jpg"))
+                    cv2.imwrite(path_name, self.composite_img)
+                    self.now = now
+
+                detected = detect(diff_img, self.min_length)
+                if detected is not None:
+                    '''
+                    for meteor_candidate in detected:
+                        print('{} {} A possible meteor was detected.'.format(obs_time, meteor_candidate))
+                    '''
                     print('{} A possible meteor was detected.'.format(obs_time))
                     filename = "{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
                     path_name = str(Path(self.output_dir, filename + ".jpg"))
                     cv2.imwrite(path_name, self.composite_img)
+
+                    # 検出した動画を保存する。
+                    movie_file = str(Path(self.output_dir, "movie-" + filename + ".mp4"))
+                    self.save_movie(img_list, movie_file)
             except Exception as e:
                 print(e, file=sys.stderr)
+
+    def save_movie(self, img_list, pathname):
+        """
+        画像リストから動画を作成する。
+
+        Args:
+          imt_list: 画像のリスト
+          pathname: 出力ファイル名
+        """
+        size = (self.WIDTH, self.HEIGHT)
+        fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+
+        video = cv2.VideoWriter(pathname, fourcc, self.FPS, size)
+        for img in img_list:
+            video.write(img)
+
+        video.release()
 
     def streaming(self, exposure, no_window):
         """
@@ -395,7 +444,7 @@ class AtomCam:
                         blur_img = cv2.medianBlur(composite_img, 3)
                         cv2.imshow('ATOM Cam2 x {} frames '.format(number), blur_img)
                         # cv2.imshow('ATOM Cam2 x {} frames '.format(number), composite_img)
-                    if detect(diff_img) is not None:
+                    if detect(diff_img, self.min_length) is not None:
                         print('{} A possible meteor was detected.'.format(obs_time))
                         filename = "{:04}{:02}{:02}{:02}{:02}{:02}".format(now.year, now.month, now.day, now.hour, now.minute, now.second)
                         path_name = str(Path(self.output_dir, filename + ".jpg"))
@@ -417,7 +466,7 @@ class DetectMeteor():
     """
     動画ファイル(MP4)からの流星の検出
     """
-    def __init__(self, file_path):
+    def __init__(self, file_path, mask=None, minLineLength=30):
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
         self.FPS = self.capture.stream.get(cv2.CAP_PROP_FPS)
@@ -435,9 +484,20 @@ class DetectMeteor():
         self.minute = date_element[-1].split('.')[0]
         self.obs_time = "{}/{:02}/{:02} {}:{}".format(self.date.year, self.date.month, self.date.day, self.hour, self.minute)
 
-        # 時刻表示部分のマスクを作成
-        zero = np.zeros((1080, 1920, 3), np.uint8)
-        self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
+        if mask:
+            # マスク画像指定の場合
+            self.mask = cv2.imread(mask)
+        else:
+            # 時刻表示部分のマスクを作成
+            zero = np.zeros((1080, 1920, 3), np.uint8)
+            if self.source == "Subaru":
+                # mask SUBRU/Mauna-Kea timestamp
+                self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
+            else:
+                # mask ATOM Cam timestamp
+                self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
+
+        self.min_length = minLineLength
 
     def meteor(self, exposure=1, output=None):
         """流星の検出
@@ -474,7 +534,7 @@ class DetectMeteor():
             if number > 2:
                 try:
                     diff_img = brightest(diff(img_list, self.mask))
-                    if detect(diff_img) is not None:
+                    if detect(diff_img, self.min_length) is not None:
                         obs_time = "{}:{}".format(self.obs_time, str(count*exposure).zfill(2))
                         print('{}  A possible meteor was detected.'.format(obs_time))
                         filename = self.date_dir + self.hour + self.minute + str(count*exposure).zfill(2)
@@ -510,13 +570,13 @@ def detect_meteor(args):
     if args.minute:
         # 1分間の単体のmp4ファイルの処理
         print("#", file_path)
-        detecter = DetectMeteor(str(file_path))
+        detecter = DetectMeteor(str(file_path), mask=args.mask, minLineLength=args.min_length)
         detecter.meteor(args.exposure, args.output)
     else:
         # 1時間内の一括処理
         for file_path in sorted(Path(data_dir).glob("[0-9][0-9].mp4")):
             print('#', Path(file_path))
-            detecter = DetectMeteor(str(file_path))
+            detecter = DetectMeteor(str(file_path), args.mask)
             detecter.meteor(args.exposure, args.output)
 
 
@@ -556,7 +616,7 @@ def streaming_thread(args):
     RTSPストリーミング、及び動画ファイルからの流星の検出(スレッド版)
     """
     if args.url:
-        atom = AtomCam(args.url, args.output, args.to, args.clock)
+        atom = AtomCam(args.url, args.output, args.to, args.clock, args.mask, args.min_length)
         if not atom.capture.isOpened():
             return
 
@@ -598,9 +658,10 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--to', default="0600", help='終了時刻(JST) "hhmm" 形式(ex. 0600)')
 
     parser.add_argument('--mask', default=None, help="mask image")
+    parser.add_argument('--min_length', type=int, default=30, help="minLineLength of HoghLinesP")
 
     # threadモード
-    parser.add_argument('--thread', default=True, action='store_true', help='スレッドテスト版')
+    parser.add_argument('--thread', default=True, action='store_true', help='スレッド版')
     parser.add_argument('-c', '--clock', action='store_true', help='カメラの時刻チェック')
 
     parser.add_argument('--help', action='help', help='show this help message and exit')
