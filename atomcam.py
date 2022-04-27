@@ -29,8 +29,8 @@ ATOM_CAM_RTSP = "rtsp://{}:8554/unicast".format(ATOM_CAM_IP)
 ATOM_CAM_USER = "root"
 ATOM_CAM_PASS = "atomcam2"
 
-# YouTube ライブ配信ソース
-YouTube = {"BjzXPGnix6Q": "Kiso", "eH90mZnmgD4": "Subaru"}
+# YouTube ライブ配信ソース (変更になった場合は要修正)
+YouTube = {"b5HlyYHIxik": "Kiso", "eH90mZnmgD4": "Subaru"}
 
 
 class AtomTelnet():
