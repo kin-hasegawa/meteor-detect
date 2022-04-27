@@ -30,7 +30,7 @@ ATOM_CAM_USER = "root"
 ATOM_CAM_PASS = "atomcam2"
 
 # YouTube ライブ配信ソース (変更になった場合は要修正)
-YouTube = {"b5HlyYHIxik": "Kiso", "eH90mZnmgD4": "Subaru"}
+YouTube = {"mrusJKLhxAw": "Kiso", "eH90mZnmgD4": "Subaru"}
 
 
 class AtomTelnet():
