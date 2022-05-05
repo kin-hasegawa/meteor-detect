@@ -30,7 +30,11 @@ ATOM_CAM_USER = "root"
 ATOM_CAM_PASS = "atomcam2"
 
 # YouTube ライブ配信ソース (変更になった場合は要修正)
-YouTube = {"mrusJKLhxAw": "Kiso", "eH90mZnmgD4": "Subaru"}
+YouTube = {
+    "mrusJKLhxAw": "Kiso",
+    "eH90mZnmgD4": "Subaru",
+    "qtn9BANlfZc": "Etanbetsu"
+}
 
 
 class AtomTelnet():
@@ -251,7 +255,7 @@ class AtomCam:
         if self.capture:
             self.capture.release()
 
-        if self.source in ['Kiso', 'Subaru']:
+        if self.source in ['Kiso', 'Subaru', 'Etanbetsu']:
             video = pafy.new(self.url)
             best = video.getbest(preftype="mp4")
             url = best.url
