@@ -667,7 +667,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--mask', default=None, help="mask image")
     parser.add_argument('--min_length', type=int, default=30, help="minLineLength of HoghLinesP")
-    parser.add_argument('--verbose', default=True,  help='verbose mode')
+    parser.add_argument('--verbose', default=True,  help='verbose mode: "True"(default) or "False"')
 
     # threadモード
     parser.add_argument('--thread', default=True, action='store_true', help='スレッド版')
