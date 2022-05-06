@@ -30,7 +30,12 @@ ATOM_CAM_USER = "root"
 ATOM_CAM_PASS = "atomcam2"
 
 # YouTube ライブ配信ソース (変更になった場合は要修正)
-YouTube = {"b5HlyYHIxik": "Kiso", "eH90mZnmgD4": "Subaru"}
+YouTube = {
+    "mrusJKLhxAw": "Kiso",
+    "eH90mZnmgD4": "Subaru",
+    "GHzzILvuwFo": "Fukushima",
+    "qtn9BANlfZc": "Etanbetsu"
+}
 
 
 class AtomTelnet():
@@ -182,7 +187,7 @@ class AtomCam:
 
         # 入力ソースの判定
         if "youtube" in video_url:
-            # YouTube(マウナケア、木曽)
+            # YouTube(マウナケア、木曽、福島、江丹別)
             for source in YouTube.keys():
                 if source in video_url:
                     self.source = YouTube[source]
@@ -230,6 +235,8 @@ class AtomCam:
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
+            elif self.source == "Fukushima":
+                self.mask = cv2.rectangle(zero, (338,1030),(660,1070),(255,255,255), -1)
             else:
                 # mask ATOM Cam timestamp
                 self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
@@ -251,7 +258,8 @@ class AtomCam:
         if self.capture:
             self.capture.release()
 
-        if self.source in ['Kiso', 'Subaru']:
+        if self.source in YouTube.values():
+            # YouTubeからのストリーミング入力
             video = pafy.new(self.url)
             best = video.getbest(preftype="mp4")
             url = best.url
@@ -659,6 +667,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--mask', default=None, help="mask image")
     parser.add_argument('--min_length', type=int, default=30, help="minLineLength of HoghLinesP")
+    parser.add_argument('--verbose', default=True,  help='verbose mode: "True"(default) or "False"')
 
     # threadモード
     parser.add_argument('--thread', default=True, action='store_true', help='スレッド版')
@@ -667,6 +676,9 @@ if __name__ == '__main__':
     parser.add_argument('--help', action='help', help='show this help message and exit')
 
     args = parser.parse_args()
+
+    if args.verbose is False:
+        sys.stderr = open(os.devnull, 'w')
 
     if args.date:
         # 日付がある場合はファイル(ATOMCam形式のファイル)から流星検出

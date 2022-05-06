@@ -288,8 +288,9 @@ ATOM_CAM_PASS = "atomcam2"
 
 ```
 % ./atomcam.py --help
-usage: atomcam.py [-u URL] [-n] [-d DATE] [-h HOUR] [-m MINUTE] [-i INPUT] [-e EXPOSURE] [-o OUTPUT] [-t TO]
-                  [--mask MASK] [--min_length MIN_LENGTH] [--thread] [-c] [--help]
+usage: atomcam.py [-u URL] [-n] [-d DATE] [-h HOUR] [-m MINUTE] [-i INPUT] [-e EXPOSURE]
+                  [-o OUTPUT] [-t TO] [--mask MASK] [--min_length MIN_LENGTH] [--verbose VERBOSE]
+                  [--thread] [-c] [--help]
 
 optional arguments:
   -u URL, --url URL     RTSPのURL、または動画(MP4)ファイル
@@ -308,6 +309,7 @@ optional arguments:
   --mask MASK           mask image
   --min_length MIN_LENGTH
                         minLineLength of HoghLinesP
+  --verbose VERBOSE     verbose mode: "True"(default) or "False"
   --thread              スレッド版
   -c, --clock           カメラの時刻チェック
   --help                show this help message and exit
@@ -341,6 +343,22 @@ optional arguments:
 ...
 ```
 
+実行すると、検出時の比較明合成画像(jpeg)、動画(mp4)、及び1時間毎にスカイモニター画像(jpeg)が出力される。
+
+- `yyyymmddhhmmss.jpg` (検出時の比較明合成画像)
+- `movie-yyyymmddhhmmss.mp4` (検出時の動画)
+- `sky-yyyymmddhhmmss.jpg` (スカイモニター画像)
+
+これらのファイルはデフォルトではコマンドを起動したディレクトリ下に作成される。出力先ディレクトリ名を以下のオプションで指定することができる。日付などをディレクトリ名を作成しておくと後で整理しやすいだろう。
+
+```
+-o 出力先ディレクトリ名
+
+または、
+
+--output 出力先ディレクトリ名
+```
+
 以下は自宅環境のログ出力の例。Wi-Fi環境が悪く、パケットロスにより動画をデコードに失敗した場合に出るエラー(h264エラー)。
 接続が切れた場合は再接続を試みて続行するようにしている。
 
@@ -360,6 +378,14 @@ optional arguments:
 [h264 @ 0x7fa947e41080] error while decoding MB 82 
 ```
 回線状態が良ければ上記のエラーはでない。
+
+エラー出力が鬱陶しい場合は、起動時のオプションで、
+
+```
+--verbose False
+```
+
+を追加すると表示されなくなる。
 
 <p align="center">
   <img src="images/20220104050908.jpg" alt="QUA Meteor" width="80%">
@@ -386,6 +412,7 @@ teeコマンドの`-a`オプションは追記で、オプションなしの場�
 
 `-c` または `--clock` オプション指定で起動時にATOM Cam側のクロックを表示させた場合の例(ATOM Camの user/pass を設定する必要があるので注意)。
 
+(atomcam_toolsの新しいバージョンではJST表示なっているので、下記の昨日は9時間ずれる可能性あり。作者は未確認)
 
 ```
 % ./atomcam.py -c
@@ -511,6 +538,7 @@ ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとフ�
 ### YouTubeのライブストリーミングから流星検出を行う。
 
 まだ動作が不安定なことがあり、ネットワーク回線の影響で接続が切れた場合の再接続に失敗する場合がある。
+また、URLが時々変更されることがあるので、その場合にプログラム側で対応する必要あるので、使えなくなることもある。
 
 `--url`オプションでYouTube動画のURLを指定する。(URLにはダブルクォートで括る必要あり)
 
@@ -528,11 +556,12 @@ ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとフ�
   検出された流星の比較明合成画像。
 </p>
 
+国立天文台ハワイ観測所と朝日新聞科学部提供
 
 #### 東大木曽観測所
 
 ```
-% ./atomcam.py --url "https://www.youtube.com/watch?v=b5HlyYHIxik"
+% ./atomcam.py --url "https://www.youtube.com/watch?v=mrusJKLhxAw"
 ```
 
 <p align="center">
@@ -540,6 +569,16 @@ ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとフ�
   <br>
   検出された流星の比較明合成画像。
 </p>
+
+東京大学木曽観測所と朝日新聞科学部提供
+
+#### 福島星空ライブ
+
+```
+% ./atomcam.py --url "https://www.youtube.com/watch?v=mrusJKLhxAw"
+```
+
+朝日新聞科学部提供
 
 ## 暫定結果
 
