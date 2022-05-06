@@ -235,6 +235,8 @@ class AtomCam:
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
+            elif self.source == "Fukushima":
+                self.mask = cv2.rectangle(zero, (338,1030),(660,1070),(255,255,255), -1)
             else:
                 # mask ATOM Cam timestamp
                 self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
