@@ -309,7 +309,8 @@ optional arguments:
   --mask MASK           mask image
   --min_length MIN_LENGTH
                         minLineLength of HoghLinesP
-  --verbose VERBOSE     verbose mode: "True"(default) or "False"
+  -s, --suppress-warning
+                        suppress warning messages
   --thread              スレッド版
   -c, --clock           カメラの時刻チェック
   --help                show this help message and exit
@@ -382,7 +383,13 @@ optional arguments:
 エラー出力が鬱陶しい場合は、起動時のオプションで、
 
 ```
---verbose False
+-s
+```
+
+または、
+
+```
+--suppress-warning
 ```
 
 を追加すると表示されなくなる。
