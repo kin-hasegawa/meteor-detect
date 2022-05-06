@@ -667,6 +667,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--mask', default=None, help="mask image")
     parser.add_argument('--min_length', type=int, default=30, help="minLineLength of HoghLinesP")
+    parser.add_argument('--verbose', default=True,  help='verbose mode')
 
     # threadモード
     parser.add_argument('--thread', default=True, action='store_true', help='スレッド版')
@@ -675,6 +676,9 @@ if __name__ == '__main__':
     parser.add_argument('--help', action='help', help='show this help message and exit')
 
     args = parser.parse_args()
+
+    if args.verbose is False:
+        sys.stderr = open(os.devnull, 'w')
 
     if args.date:
         # 日付がある場合はファイル(ATOMCam形式のファイル)から流星検出
