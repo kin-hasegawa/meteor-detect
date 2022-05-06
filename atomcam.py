@@ -33,6 +33,7 @@ ATOM_CAM_PASS = "atomcam2"
 YouTube = {
     "mrusJKLhxAw": "Kiso",
     "eH90mZnmgD4": "Subaru",
+    "GHzzILvuwFo": "Fukushima",
     "qtn9BANlfZc": "Etanbetsu"
 }
 
@@ -186,7 +187,7 @@ class AtomCam:
 
         # 入力ソースの判定
         if "youtube" in video_url:
-            # YouTube(マウナケア、木曽)
+            # YouTube(マウナケア、木曽、福島、江丹別)
             for source in YouTube.keys():
                 if source in video_url:
                     self.source = YouTube[source]
@@ -255,7 +256,8 @@ class AtomCam:
         if self.capture:
             self.capture.release()
 
-        if self.source in ['Kiso', 'Subaru', 'Etanbetsu']:
+        if self.source in YouTube.values():
+            # YouTubeからのストリーミング入力
             video = pafy.new(self.url)
             best = video.getbest(preftype="mp4")
             url = best.url
