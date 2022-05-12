@@ -81,17 +81,22 @@ def check_clock():
     """
     tn = AtomTelnet()
     atom_date = tn.exec('date')
+    '''
     utc_now = datetime.now(timezone.utc)
     atom_now = datetime.strptime(atom_date, "%a %b %d %H:%M:%S %Z %Y")
     atom_now = atom_now.replace(tzinfo=timezone.utc)
-    dt = atom_now - utc_now
+    '''
+    jst_now = datetime.now()
+    atom_now = datetime.strptime(atom_date, "%a %b %d %H:%M:%S %Z %Y")
+
+    dt = atom_now - jst_now
     if dt.days < 0:
         delta = -(86400.0 - (dt.seconds + dt.microseconds/1e6))
     else:
         delta = dt.seconds + dt.microseconds/1e6
 
     print("# ATOM Cam =", atom_now)
-    print("# HOST PC  =", utc_now)
+    print("# HOST PC  =", jst_now)
     print("# ATOM Cam - Host PC = {:.3f} sec".format(delta))
 
 
@@ -99,8 +104,9 @@ def set_clock():
     """ATOM Camのクロックとホスト側のクロックに合わせる。
     """
     tn = AtomTelnet()
-    utc_now = datetime.now(timezone.utc)
-    set_command = 'date -s "{}"'.format(utc_now.strftime("%Y-%m-%d %H:%M:%S"))
+    # utc_now = datetime.now(timezone.utc)
+    jst_now = datetime.now()
+    set_command = 'date -s "{}"'.format(jst_now.strftime("%Y-%m-%d %H:%M:%S"))
     print(set_command)
     tn.exec(set_command)
 
