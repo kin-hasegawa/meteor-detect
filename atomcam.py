@@ -34,7 +34,7 @@ YouTube = {
     "mrusJKLhxAw": "Kiso",
     "eH90mZnmgD4": "Subaru",
     "GHzzILvuwFo": "Fukushima",
-    "qtn9BANlfZc": "Etanbetsu"
+    "KjimvRhq06k": "Etanbetsu"
 }
 
 
