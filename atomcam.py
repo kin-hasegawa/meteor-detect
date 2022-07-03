@@ -484,6 +484,7 @@ class DetectMeteor():
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
         self.FPS = self.capture.stream.get(cv2.CAP_PROP_FPS)
+        self.source = None
         if self.FPS < 1.0:
             # 正しく入っていない場合があるので、その場合は15固定にする(ATOM Cam限定)。
             self.FPS = 15
