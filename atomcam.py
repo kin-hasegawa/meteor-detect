@@ -478,11 +478,13 @@ class AtomCam:
 
 class DetectMeteor():
     """
-    動画ファイル(MP4)からの流星の検出
+    ATOMCam 動画ファイル(MP4)からの流星の検出
     """
     def __init__(self, file_path, mask=None, minLineLength=30):
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
+        self.HEIGHT = int(self.capture.stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.WIDTH = int(self.capture.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.FPS = self.capture.stream.get(cv2.CAP_PROP_FPS)
         self.source = None
         if self.FPS < 1.0:
@@ -513,6 +515,23 @@ class DetectMeteor():
                 self.mask = cv2.rectangle(zero, (1390,1010),(1920,1080),(255,255,255), -1)
 
         self.min_length = minLineLength
+
+    def save_movie(self, img_list, pathname):
+        """
+        画像リストから動画を作成する。
+
+        Args:
+          imt_list: 画像のリスト
+          pathname: 出力ファイル名
+        """
+        size = (self.WIDTH, self.HEIGHT)
+        fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+
+        video = cv2.VideoWriter(pathname, fourcc, self.FPS, size)
+        for img in img_list:
+            video.write(img)
+
+        video.release()
 
     def meteor(self, exposure=1, output=None):
         """流星の検出
@@ -559,6 +578,11 @@ class DetectMeteor():
                         # cv2.imwrite(filename + ".jpg", diff_img)
                         composite_img = brightest(img_list)
                         cv2.imwrite(path_name, composite_img)
+
+                        # 検出した動画を保存する。
+                        movie_file = str(Path(output_dir, "movie-" + filename + ".mp4"))
+                        self.save_movie(img_list, movie_file)
+
                 except Exception as e:
                     # print(traceback.format_exc(), file=sys.stderr)
                     print(e, file=sys.stderr)
