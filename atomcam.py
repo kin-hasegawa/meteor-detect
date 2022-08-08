@@ -31,7 +31,7 @@ ATOM_CAM_PASS = "atomcam2"
 
 # YouTube ライブ配信ソース (変更になった場合は要修正)
 YouTube = {
-    "mrusJKLhxAw": "Kiso",
+    "SDRS6JQulmI": "Kiso",
     "eH90mZnmgD4": "Subaru",
     "GHzzILvuwFo": "Fukushima",
     "KjimvRhq06k": "Etanbetsu"
@@ -203,7 +203,8 @@ class AtomCam:
         self.url = video_url
 
         self.connect()
-        self.FPS = int(self.capture.get(cv2.CAP_PROP_FPS))
+        # opencv-python 4.6.0.66 のバグで大きな値(9000)が返ることがあるので対策。
+        self.FPS = min(int(self.capture.get(cv2.CAP_PROP_FPS)), 60)
         self.HEIGHT = int(self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.WIDTH = int(self.capture.get(cv2.CAP_PROP_FRAME_WIDTH))
 
