@@ -30,19 +30,24 @@ Automatic meteor detection from movie files(MP4) and streaming devices(RTSP)
 </p>
 
 * PC環境
-  * macOS 11, 12 (Intel Mac, M1 Mac) , Ubuntu 20.04LTSで動作確認。
+  * macOS 11, 12 (Intel Mac, M1 Mac) , Ubuntu 20.04LTS, Ubuntu 22.04LTS で動作確認。
   * Windows10で動作したという報告もある。
   * Python 3.8以上で動作確認<br>
-  (2022/01/20現在、Python3.10 ではOpenCVがまだサポートされていないので、現状は Python3.9まで)
+  (2022/08/13現在、Python3.10/Ubuntu 22.05LTS で動作確認)
 
 * 必要なソフトウエア
-  * ATOM Cam側
-    * atomcam_tools.zip
   * PC側
     * Python 3.X
     * OpenCV
+  * ATOM Cam側
+    * atomcam_tools.zip
 
-### atomcam-toolsのインストール
+ATOMCamがファームウェアバージョン4.58.0.91 から正式に RTSP をサポートしたので　atomcam_tools のインストールがなくてもリアルタイム検出が可能になった。
+
+
+### atomcam-toolsのインストール (オプショナル)
+
+最新のファームウェア(4.58.0.91以降)の場合、以下のatomcam-tools のインストールは不要となった。
 
 atomcam-tools は、[hanyeylab](https://honeylab.hatenablog.jp/about) さんが作成された ATOM Cam RTSPサーバー、FTP、TELNETサーバー等の機能を追加するツールである。カメラ上でLinuxのカーネルを稼働させて、それらの機能を提供している。
 SDカードにダウンロードしたファイルをコピーしてカメラの再起動を行うだけでインストールができる。
@@ -178,7 +183,7 @@ import pafy
 import apafy as pafy
 ```
 
-とすれば良いはず(私は試していない)。
+とすれば良い。現在の実装は、apafyを最初に試し、ない場合に pafy を import するようにしてあるので、上記の修正は不要。
 
 ## 流星検出方法
 

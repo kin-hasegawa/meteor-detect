@@ -8,10 +8,12 @@ import time
 import argparse
 import numpy as np
 import cv2
-import pafy
 from imutils.video import FileVideoStream
 import telnetlib
-
+try:
+    import apafy as pafy
+except Exception:
+    import pafy
 
 # マルチスレッド関係
 import threading
