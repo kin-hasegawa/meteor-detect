@@ -143,7 +143,7 @@ def brightest(img_list):
     output = img_list[0]
 
     for img in img_list[1:]:
-        output = np.where(output > img, output, img)
+        cv2.max(img, output, output)
 
     return output
 
@@ -180,7 +180,7 @@ def detect(img, min_length):
     canny = cv2.Canny(blur, 100, 200, 3)
 
     # The Hough-transform algo:
-    return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=min_length, maxLineGap=5)
+    return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=min_length, maxLineGap=5).get()
 
 
 class AtomCam:
@@ -238,7 +238,7 @@ class AtomCam:
             self.mask = cv2.imread(mask)
         else:
             # 時刻表示部分のマスクを作成
-            zero = np.zeros((1080, 1920, 3), np.uint8)
+            zero = cv2.UMat((1080, 1920), cv2.CV8UC3)
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
@@ -288,6 +288,7 @@ class AtomCam:
         while(True):
             try:
                 ret, frame = self.capture.read()
+                frame = cv2.UMat(frame)
                 if ret:
                     # self.image_queue.put_nowait(frame)
                     now = datetime.now()
@@ -427,6 +428,7 @@ class AtomCam:
             for n in range(num_frames):
                 try:
                     ret, frame = self.capture.read()
+                    frame = cv2.UMat(frame)
                 except Exception as e:
                     print(e, file=sys.stderr)
                     continue
@@ -507,7 +509,7 @@ class DetectMeteor():
             self.mask = cv2.imread(mask)
         else:
             # 時刻表示部分のマスクを作成
-            zero = np.zeros((1080, 1920, 3), np.uint8)
+            zero = cv2.UMat((1080, 1920), cv2.8UC3)
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
@@ -552,7 +554,7 @@ class DetectMeteor():
             for n in range(num_frames):
                 try:
                     if self.capture.more():
-                        frame = self.capture.read()
+                        frame = cv2.UMat(self.capture.read())
                     else:
                         continue
                 except Exception as e:
