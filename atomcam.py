@@ -238,7 +238,7 @@ class AtomCam:
             self.mask = cv2.imread(mask)
         else:
             # 時刻表示部分のマスクを作成
-            zero = cv2.UMat((1080, 1920), cv2.CV8UC3)
+            zero = cv2.UMat(1080, 1920, cv2.CV_8UC3)
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
@@ -509,7 +509,7 @@ class DetectMeteor():
             self.mask = cv2.imread(mask)
         else:
             # 時刻表示部分のマスクを作成
-            zero = cv2.UMat((1080, 1920), cv2.8UC3)
+            zero = cv2.UMat(1080, 1920, cv2.CV_8UC3)
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(zero, (1660,980),(1920,1080),(255,255,255), -1)
