@@ -145,7 +145,7 @@ def brightest(img_list):
     output = img_list[0]
 
     for img in img_list[1:]:
-        cv2.max(img, output, output)
+        output = cv2.max(img, output)
 
     return output
 
