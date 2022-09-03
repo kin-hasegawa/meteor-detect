@@ -35,9 +35,7 @@ ATOM_CAM_PASS = "atomcam2"
 # YouTube ライブ配信ソース (変更になった場合は要修正)
 YouTube = {
     "SDRS6JQulmI": "Kiso",
-    "eH90mZnmgD4": "Subaru",
-    "GHzzILvuwFo": "Fukushima",
-    "KjimvRhq06k": "Etanbetsu"
+    "eH90mZnmgD4": "Subaru"
 }
 
 
@@ -264,9 +262,6 @@ class AtomCam:
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(
                     zero, (1660, 980), (1920, 1080), (255, 255, 255), -1)
-            elif self.source == "Fukushima":
-                self.mask = cv2.rectangle(
-                    zero, (338, 1030), (660, 1070), (255, 255, 255), -1)
             else:
                 # mask ATOM Cam timestamp
                 self.mask = cv2.rectangle(
