@@ -667,37 +667,6 @@ def detect_meteor(args):
             detecter.meteor(args.exposure, args.output)
 
 
-def streaming(args):
-    """
-    RTSPストリーミング、及び動画ファイルからの流星の検出
-    (スレッドなし版、いずれ削除する。)
-    """
-    if args.url:
-        atom = AtomCam(args.url, args.output, args.to)
-        if not atom.capture.isOpened():
-            return
-
-    now = datetime.now()
-    obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(
-        now.year, now.month, now.day, now.hour, now.minute, now.second
-    )
-    print("# {} start".format(obs_time))
-
-    while True:
-        sts = atom.streaming(args.exposure, args.no_window)
-        if sts == 1:
-            if Path(args.url).suffix == '.mp4':
-                # MP4ファイルの場合は終了する。
-                return
-
-            # 異常終了した場合に再接続する
-            time.sleep(5)
-            print("# re-connectiong to ATOM Cam ....")
-            atom = AtomCam(args.url, args.output, args.to)
-        else:
-            return
-
-
 def streaming_thread(args):
     """
     RTSPストリーミング、及び動画ファイルからの流星の検出(スレッド版)
@@ -776,9 +745,6 @@ if __name__ == '__main__':
     if args.date:
         # 日付がある場合はファイル(ATOMCam形式のファイル)から流星検出
         detect_meteor(args)
-    elif args.thread:
+    else:
         # ストリーミング/動画(MP4)の再生、流星検出
         streaming_thread(args)
-    else:
-        # ストリーミング/動画(MP4)の再生(旧バージョン)
-        streaming(args)
