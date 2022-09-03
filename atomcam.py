@@ -13,6 +13,7 @@ import telnetlib
 try:
     import apafy as pafy
 except Exception:
+    # pafyを使う場合はpacheが必要。
     import pafy
 
 # マルチスレッド関係
@@ -435,6 +436,7 @@ class AtomCam:
 class DetectMeteor():
     """
     ATOMCam 動画ファイル(MP4)からの流星の検出
+    親クラスから継承したものにしたい。
     """
 
     def __init__(self, file_path, mask=None, minLineLength=30):
@@ -588,10 +590,22 @@ def streaming_thread(args):
     RTSPストリーミング、及び動画ファイルからの流星の検出(スレッド版)
     """
     if args.url:
-        atom = AtomCam(args.url, args.output, args.to,
-                       args.clock, args.mask, args.min_length)
-        if not atom.capture.isOpened():
-            return
+        # URL指定の場合。
+        url = args.url
+    else:
+        # defaultはATOMCamのURLとする。
+        if args.atomcam_tools:
+            # atomcam_toolsのRTSPを使う場合。
+            url = f"rtsp://{ATOM_CAM_IP}:8554/unicast"
+        else:
+            # メーカ指定のRTSPを使う場合
+            url = f"rtsp://6199:4003@{ATOM_CAM_IP}/live"
+
+    # print(url)
+    atom = AtomCam(url, args.output, args.to, args.clock,
+                   args.mask, args.min_length)
+    if not atom.capture.isOpened():
+        return
 
     now = datetime.now()
     obs_time = "{:04}/{:02}/{:02} {:02}:{:02}:{:02}".format(
@@ -616,7 +630,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(add_help=False)
 
     # ストリーミングモードのオプション
-    parser.add_argument('-u', '--url', default=ATOM_CAM_RTSP,
+    parser.add_argument('-u', '--url', default=None,
                         help='RTSPのURL、または動画(MP4)ファイル')
     parser.add_argument('-n', '--no_window', action='store_true', help='画面非表示')
 
@@ -639,17 +653,23 @@ if __name__ == '__main__':
     parser.add_argument('--mask', default=None, help="mask image")
     parser.add_argument('--min_length', type=int, default=30,
                         help="minLineLength of HoghLinesP")
+
+    # ffmpeg関係の警告がウザいので抑制する。
     parser.add_argument('-s', '--suppress-warning',
                         action='store_true', help='suppress warning messages')
 
-    # threadモード
+    # threadモード(default)
     parser.add_argument('--thread', default=True,
-                        action='store_true', help='スレッド版')
-    parser.add_argument(
-        '-c', '--clock', action='store_true', help='カメラの時刻チェック')
+                        action='store_true', help='スレッド版(default)')
 
     parser.add_argument('--help', action='help',
                         help='show this help message and exit')
+
+    # 以下のオプションはatomcam_toolsを必要とする。
+    parser.add_argument(
+        '--atomcam_tools', action='store_true', help='atomcam_toolsを使う場合に指定する。')
+    parser.add_argument(
+        '-c', '--clock', action='store_true', help='カメラの時刻チェック(atomcam_tools必要)')
 
     args = parser.parse_args()
 
