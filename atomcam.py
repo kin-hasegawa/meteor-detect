@@ -481,9 +481,9 @@ class DetectMeteor():
         else:
             # 時刻表示部分のマスクを作成
             if no_opencl:
-                zero = cv2.UMat(1080, 1920, cv2.CV_8UC3)
-            else:
                 zero = cv2.zeros((1080, 1920, 3), np.uint8)
+            else:
+                zero = cv2.UMat(1080, 1920, cv2.CV_8UC3)
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(
