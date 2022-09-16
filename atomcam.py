@@ -135,18 +135,26 @@ def composite(list_images):
     return output
 
 
-def median(list_images):
+def median(list_images, no_opencl=False):
     img_list = []
-    for img in list_images:
-        img_list.append(cv2.UMat.get(img))
+    if no_opencl:
+        for img in list_images:
+            img_list.append(img)
+    else:
+        for img in list_images:
+            img_list.append(cv2.UMat.get(img))
 
     return np.median(img_list, axis=0).astype(np.uint8)
 
 
-def average(list_images):
+def average(list_images, no_opencl=False):
     img_list = []
-    for img in list_images:
-        img_list.append(cv2.UMat.get(img))
+    if no_opencl:
+        for img in list_images:
+            img_list.append(img)
+    else:
+        for img in list_images:
+            img_list.append(cv2.UMat.get(img))
 
     return np.average(img_list, axis=0).astype(np.uint8)
 
@@ -204,11 +212,12 @@ def detect(img, min_length):
 
 class AtomCam:
     def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600",
-                 clock=False, mask=None, minLineLength=30):
+                 clock=False, mask=None, minLineLength=30, no_opencl=False):
         self._running = False
         # video device url or movie file path
         self.capture = None
         self.source = None
+        self.no_opencl = no_opencl
 
         # 入力ソースの判定
         if "youtube" in video_url:
@@ -258,7 +267,10 @@ class AtomCam:
             self.mask = cv2.imread(mask)
         else:
             # 時刻表示部分のマスクを作成
-            zero = cv2.UMat(1080, 1920, cv2.CV_8UC3)
+            if self.no_opencl:
+                zero = cv2.zeros(1080, 1920, np.uint8)
+            else:
+                zero = cv2.UMat(1080, 1920, cv2.CV_8UC3)
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(
@@ -308,7 +320,8 @@ class AtomCam:
         while(True):
             try:
                 ret, frame = self.capture.read()
-                frame = cv2.UMat(frame)
+                if not self.no_opencl:
+                    frame = cv2.UMat(frame)
                 if ret:
                     # self.image_queue.put_nowait(frame)
                     now = datetime.now()
@@ -439,13 +452,14 @@ class DetectMeteor():
     親クラスから継承したものにしたい。
     """
 
-    def __init__(self, file_path, mask=None, minLineLength=30):
+    def __init__(self, file_path, mask=None, minLineLength=30, no_opencl=False):
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
         self.HEIGHT = int(self.capture.stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.WIDTH = int(self.capture.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.FPS = self.capture.stream.get(cv2.CAP_PROP_FPS)
         self.source = None
+        self.no_opencl = opencl
         if self.FPS < 1.0:
             # 正しく入っていない場合があるので、その場合は15固定にする(ATOM Cam限定)。
             self.FPS = 15
@@ -466,7 +480,10 @@ class DetectMeteor():
             self.mask = cv2.imread(mask)
         else:
             # 時刻表示部分のマスクを作成
-            zero = cv2.UMat(1080, 1920, cv2.CV_8UC3)
+            if no_opencl:
+                zero = cv2.UMat(1080, 1920, cv2.CV_8UC3)
+            else:
+                zero = cv2.zeros((1080, 1920, 3), np.uint8)
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(
@@ -513,7 +530,9 @@ class DetectMeteor():
             for n in range(num_frames):
                 try:
                     if self.capture.more():
-                        frame = cv2.UMat(self.capture.read())
+                        frame = self.capture.read()
+                        if not self.no_opencl:
+                            frame = cv2.UMat(frame)
                     else:
                         continue
                 except Exception as e:
@@ -653,6 +672,9 @@ if __name__ == '__main__':
     parser.add_argument('--mask', default=None, help="mask image")
     parser.add_argument('--min_length', type=int, default=30,
                         help="minLineLength of HoghLinesP")
+
+    parser.add_argument('--no_opencl',
+                        action='store_true', help="don't youse OpenCL (default: False)")
 
     # ffmpeg関係の警告がウザいので抑制する。
     parser.add_argument('-s', '--suppress-warning',
