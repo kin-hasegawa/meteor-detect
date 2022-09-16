@@ -403,7 +403,7 @@ class AtomCam:
                     filename = "sky-{:04}{:02}{:02}{:02}{:02}{:02}".format(
                         now.year, now.month, now.day, now.hour, now.minute, now.second)
                     path_name = str(Path(self.output_dir, filename + ".jpg"))
-                    mean_img = average(img_list)
+                    mean_img = average(img_list, self.no_opencl)
                     # cv2.imwrite(path_name, self.composite_img)
                     cv2.imwrite(path_name, mean_img)
                     self.now = now
