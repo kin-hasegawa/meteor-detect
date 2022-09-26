@@ -459,7 +459,7 @@ class DetectMeteor():
         self.WIDTH = int(self.capture.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.FPS = self.capture.stream.get(cv2.CAP_PROP_FPS)
         self.source = None
-        self.no_opencl = opencl
+        self.no_opencl = no_opencl
         if self.FPS < 1.0:
             # 正しく入っていない場合があるので、その場合は15固定にする(ATOM Cam限定)。
             self.FPS = 15
