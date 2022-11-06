@@ -87,8 +87,11 @@ def make_movie(meteor_list, output="movie.mp4", fps=1.0):
             file_path = str(Path(data_dir, date_dir, filename))
 
             print(file_path)
-            img = cv2.imread(file_path)
-            video.write(img)
+            try:
+                img = cv2.imread(file_path)
+                video.write(img)
+            except Exception as e:
+                print(str(e))
 
         video.release()
 
