@@ -36,7 +36,8 @@ ATOM_CAM_PASS = "atomcam2"
 # YouTube ライブ配信ソース (変更になった場合は要修正)
 YouTube = {
     "SDRS6JQulmI": "Kiso",
-    "eH90mZnmgD4": "Subaru"
+    "eH90mZnmgD4": "Subaru",
+    "_8rp1p_tWlc": "Subaru"
 }
 
 
