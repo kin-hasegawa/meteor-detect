@@ -569,7 +569,7 @@ ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとフ�
 #### マウナケア
 
 ```
-% ./atomcam.py --url "https://www.youtube.com/watch?v=eH90mZnmgD4"
+% ./atomcam.py --url "https://www.youtube.com/watch?v=_8rp1p_tWlc"
 ```
 
 <p align="center">
@@ -597,7 +597,7 @@ ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとフ�
 #### 福島星空ライブ
 
 ```
-% ./atomcam.py --url "https://www.youtube.com/watch?v=mrusJKLhxAw"
+% ./atomcam.py --url "https://www.youtube.com/watch?v=SDRS6JQulmI"
 ```
 
 朝日新聞科学部提供

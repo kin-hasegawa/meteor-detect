@@ -36,8 +36,9 @@ ATOM_CAM_PASS = "atomcam2"
 # YouTube ライブ配信ソース (変更になった場合は要修正)
 YouTube = {
     "SDRS6JQulmI": "Kiso",
-    "eH90mZnmgD4": "Subaru",
-    "_8rp1p_tWlc": "Subaru"
+    "_8rp1p_tWlc": "Subaru",
+    "ylSiGa_U1UE": "Fukushima",
+    "any_youtube": "YouTube"
 }
 
 
@@ -222,7 +223,8 @@ class AtomCam:
 
         # 入力ソースの判定
         if "youtube" in video_url:
-            # YouTube(マウナケア、木曽、福島、江丹別)
+            # YouTube(マウナケア、木曽、福島、etc)
+            self.source = "YouTube"
             for source in YouTube.keys():
                 if source in video_url:
                     self.source = YouTube[source]
@@ -277,6 +279,9 @@ class AtomCam:
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(
                     zero, (1660, 980), (1920, 1080), (255, 255, 255), -1)
+            elif self.source == "YouTube":
+                # no mask
+                self.mask = None
             else:
                 # mask ATOM Cam timestamp
                 self.mask = cv2.rectangle(
@@ -292,7 +297,8 @@ class AtomCam:
         )
         print("# {} stop".format(obs_time))
 
-        self.capture.release()
+        if self.capture:
+            self.capture.release()
         cv2.destroyAllWindows()
 
     def connect(self):
