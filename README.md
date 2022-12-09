@@ -31,7 +31,7 @@ Automatic meteor detection from movie files(MP4) and streaming devices(RTSP)
 
 * PC環境
   * macOS 11, 12 (Intel Mac, M1 Mac) , Ubuntu 20.04LTS, Ubuntu 22.04LTS で動作確認。
-  * Windows10で動作したという報告もある。
+  * Windows10/11で動作したという報告もある。
   * Python 3.8以上で動作確認<br>
   (2022/08/13現在、Python3.10/Ubuntu 22.05LTS で動作確認)
 
@@ -39,15 +39,19 @@ Automatic meteor detection from movie files(MP4) and streaming devices(RTSP)
   * PC側
     * Python 3.X
     * OpenCV
-  * ATOM Cam側
+    * NumPy
+    * ffmpeg
+  * ATOM Cam側 (ATOMCam 2の場合は不要)
     * atomcam_tools.zip
 
-ATOMCamがファームウェアバージョン4.58.0.91 から正式に RTSP をサポートしたので　atomcam_tools のインストールがなくてもリアルタイム検出が可能になった。
+ATOMCam2のファームウェアバージョン4.58.0.91 以降から正式に RTSP をサポートしたので　atomcam_tools のインストールがなくてもリアルタイム検出が可能になった。ただし、ATOMCam Swingの場合はこれがないとRTSP配信ができないので必要となる。
 
 
 ### atomcam-toolsのインストール (オプショナル)
 
-最新のファームウェア(4.58.0.91以降)の場合、以下のatomcam-tools のインストールは不要となった。
+最新のファームウェア(4.58.0.91以降)の場合、以下のatomcam-tools のインストールは不要となった。このセクションを飛ばしても良い。
+(ただし、ATOMCam Swingの方はRTSP未サポートのためまだ atomcam-tools が必要。)
+
 
 atomcam-tools は、[hanyeylab](https://honeylab.hatenablog.jp/about) さんが作成された ATOM Cam RTSPサーバー、FTP、TELNETサーバー等の機能を追加するツールである。カメラ上でLinuxのカーネルを稼働させて、それらの機能を提供している。
 SDカードにダウンロードしたファイルをコピーしてカメラの再起動を行うだけでインストールができる。
@@ -62,7 +66,7 @@ telnetでカメラにrootアカウントでログインすることができる�
 ただし、メーカーサポート外の使い方になるので、今後 ATOM Cam側のファームウェアのアップデートによってはこのツールが使えなくなる可能性もあるので自己責任でどうぞ。
 
 haneylabさんのオリジナルに対して改良版で、SSHなども追加されたものもあるが、ここではオリジナル版のみに対応している。
-動作については未確認であるが、改良版ではtelnetの代わりにSSHを使っているので、内部でATOM Camの時刻を取得するところで動作しない可能性がある。
+動作については未確認であるが、改良版ではtelnetの代わりにSSHを使っているので、内部でATOM Camの時刻を取得するところで動作しない。
 
 - [atomcam_tools改良版](https://github.com/mnakada/atomcam_tools)
 
@@ -93,7 +97,7 @@ configs   kback     media     proc      sbin      thirdlib  var
 
 #### ATOM Cam2の内蔵時計
 
-ATOM Cam2の内蔵時計はネットワークを通してNTPと同期していないために、時間と共にずれていく。
+ATOM Cam2の内蔵時計は起動時にWi-Fiルータ経由で設定されるものの、その後はネットワークを通してNTPと同期していないために、時間と共にずれていく。
 みんなどうやって合わせてるのだろうか？ アプリにも時刻設定メニューが見当たらない。
 
 とりあえず、telnet で入れるので、[JST Clockサイト](https://www.nict.go.jp/JST/JST5.html)を見ながら、dateコマンドで強制的に時刻を設定する。
@@ -108,6 +112,8 @@ ATOM Cam2の内蔵時計はネットワークを通してNTPと同期してい�
 ```
 # reboot
 ```
+
+ただし、内蔵時計を操作するには atomcam_tools が必要となる。atomcam_toolsがない場合は電源の再投入以外に方法はない。
 
 #### ATOM Cam2の動体検知
 
@@ -130,6 +136,8 @@ Python仮想環境の作り方については「Python 仮想環境 venv」な�
 % pip install opencv-python
 % pip install imutils
 ```
+
+numpyは opencv-pythonのインストール時に行われる。
 
 #### YouTubeライブストリーミング対応
 
@@ -167,11 +175,11 @@ self._dislikes = self._ydl_info.get('dislike_count',0)
 <venvディレクトリ>/lib/python3.9/site-packages/pafy/backend_youtube_dl.py
 ```
 
-あるいは、pafyの修正版として、本家から分岐した apafy というのがあるので、これが使えるかもしれない。
+あるいは、pafyの修正版として、本家から分岐した apafy というのがあるので、これが使える。上記の不具合は修正されている。
 
 [apafy 0.5.6.1](https://pypi.org/project/apafy/)
 
-ただし、未確認(動作したという報告あり)。apafyをインストールして使う場合、atomcam.py の最初の方で、
+apafyをインストールして使う場合、atomcam.py の最初の方で、
 
 ```
 import pafy
@@ -187,10 +195,10 @@ import apafy as pafy
 
 ## 流星検出方法
 
-1. 流星が流れる時間程度(1~2秒)で比較明合成を行う。
-1. 比較明合成した画像の差分を取り、移動天体を抽出する。
+1. 流星が流れる時間程度(1~2秒)で差分画像リストを作成する(流星のみを残す)。
+1. 差分画像のリストを比較明合成し移動天体を抽出する。
 1. 移動天体の中から流星と思われる直線状のパターンを検出する。
-1. 検出メッセージ(時刻)を出力し、その比較明合成画像を保存する。
+1. 検出メッセージ(時刻)を出力し、その比較明合成画像、及び動画を保存する。
 
 流星を検出する際に、画面右下のタイムスタンプでノイズが出ることがあったのでタイムスタンプ部分にマスクをかけている。
 その他、地上の建物に光が当たったり、電線が揺れた場合でもノイズを疲労ことがあるので環境に合わせてマスクをかけた方が誤認識は減るはずである。
@@ -272,7 +280,7 @@ def detect(img, min_length):
 ATOM_CAM_IP = os.environ.get("ATOM_CAM_IP", "192.168.2.110")
 ```
 
-ATOM CamのIPアドレスは固定IPアドレスではなく、Wi-FiルータのDHCPによって決まるので、
+ATOM CamのIPアドレスは固定IPアドレスではなく、Wi-FiルータのDHCP(あるいはルータの設定によって固定も可)によって決まるので、
 ルーターの設定によってはIPアドレスが変更される場合があるので注意。ルータ側でATOM CamのMACアドレスを登録して同じIPアドレスが割り当てられるようにしておくとよい。
 
 ATOM CamのIPアドレスはコマンド起動時に引数で指定することもできます。また環境変数(ATOM_CAM_IP)に設定しておくと、それがデフォルトになる。
@@ -281,7 +289,7 @@ ATOM CamのIPアドレスはコマンド起動時に引数で指定すること�
 export ATOM_CAM_IP=192.168.2.110
 ```
 
-また、telnetインターフェースを通してATOM Camの内蔵時計の値を表示し、ホストPC側との差を表示するには(`-c` または `--clock` オプションで指定)、以下の部分を修正してください。
+また、atomcam_toolsのtelnetインターフェースを通してATOM Camの内蔵時計の値を表示し、ホストPC側との差を表示するには(`-c` または `--clock` オプションで指定)、以下の部分を修正してください。
 
 ```
 # atomcam_toolsでのデフォルトのユーザアカウントなので、自分の環境に合わせて変更してください。
@@ -294,8 +302,8 @@ ATOM_CAM_PASS = "atomcam2"
 ```
 % ./atomcam.py --help
 usage: atomcam.py [-u URL] [-n] [-d DATE] [-h HOUR] [-m MINUTE] [-i INPUT] [-e EXPOSURE]
-                  [-o OUTPUT] [-t TO] [--mask MASK] [--min_length MIN_LENGTH] [--verbose VERBOSE]
-                  [--thread] [-c] [--help]
+                  [-o OUTPUT] [-t TO] [--mask MASK] [--min_length MIN_LENGTH] [--opencl] [-s]
+                  [--thread] [--help] [--atomcam_tools] [-c]
 
 optional arguments:
   -u URL, --url URL     RTSPのURL、または動画(MP4)ファイル
@@ -314,9 +322,11 @@ optional arguments:
   --mask MASK           mask image
   --min_length MIN_LENGTH
                         minLineLength of HoghLinesP
+  --opencl              Use OpenCL (default: False)
   -s, --suppress-warning
                         suppress warning messages
-  --thread              スレッド版
+  --thread              スレッド版(default)
+  --atomcam_tools       atomcam_toolsを使う場合に指定する
   -c, --clock           カメラの時刻チェック
   --help                show this help message and exit
 ```

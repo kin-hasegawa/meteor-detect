@@ -136,26 +136,26 @@ def composite(list_images):
     return output
 
 
-def median(list_images, no_opencl=False):
+def median(list_images, opencl=False):
     img_list = []
-    if no_opencl:
-        for img in list_images:
-            img_list.append(img)
-    else:
+    if opencl:
         for img in list_images:
             img_list.append(cv2.UMat.get(img))
+    else:
+        for img in list_images:
+            img_list.append(img)
 
     return np.median(img_list, axis=0).astype(np.uint8)
 
 
-def average(list_images, no_opencl=False):
+def average(list_images, opencl=False):
     img_list = []
-    if no_opencl:
-        for img in list_images:
-            img_list.append(img)
-    else:
+    if opencl:
         for img in list_images:
             img_list.append(cv2.UMat.get(img))
+    else:
+        for img in list_images:
+            img_list.append(img)
 
     return np.average(img_list, axis=0).astype(np.uint8)
 
@@ -208,17 +208,17 @@ def detect(img, min_length):
     canny = cv2.Canny(blur, 100, 200, 3)
 
     # The Hough-transform algo:
-    return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=min_length, maxLineGap=5).get()
+    return cv2.HoughLinesP(canny, 1, np.pi/180, 25, minLineLength=min_length, maxLineGap=5)
 
 
 class AtomCam:
     def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600",
-                 clock=False, mask=None, minLineLength=30, no_opencl=False):
+                 clock=False, mask=None, minLineLength=30, opencl=False):
         self._running = False
         # video device url or movie file path
         self.capture = None
         self.source = None
-        self.no_opencl = no_opencl
+        self.opencl = opencl
 
         # 入力ソースの判定
         if "youtube" in video_url:
@@ -268,10 +268,11 @@ class AtomCam:
             self.mask = cv2.imread(mask)
         else:
             # 時刻表示部分のマスクを作成
-            if self.no_opencl:
-                zero = cv2.zeros(1080, 1920, np.uint8)
+            if self.opencl:
+                zero = cv2.UMat((1080, 1920), cv2.CV_8UC3)
             else:
-                zero = cv2.UMat(1080, 1920, cv2.CV_8UC3)
+                zero = np.zeros((1080, 1920, 3), np.uint8)
+
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(
@@ -321,7 +322,7 @@ class AtomCam:
         while(True):
             try:
                 ret, frame = self.capture.read()
-                if not self.no_opencl:
+                if self.opencl:
                     frame = cv2.UMat(frame)
                 if ret:
                     # self.image_queue.put_nowait(frame)
@@ -404,7 +405,7 @@ class AtomCam:
                     filename = "sky-{:04}{:02}{:02}{:02}{:02}{:02}".format(
                         now.year, now.month, now.day, now.hour, now.minute, now.second)
                     path_name = str(Path(self.output_dir, filename + ".jpg"))
-                    mean_img = average(img_list, self.no_opencl)
+                    mean_img = average(img_list, self.opencl)
                     # cv2.imwrite(path_name, self.composite_img)
                     cv2.imwrite(path_name, mean_img)
                     self.now = now
@@ -453,14 +454,14 @@ class DetectMeteor():
     親クラスから継承したものにしたい。
     """
 
-    def __init__(self, file_path, mask=None, minLineLength=30, no_opencl=False):
+    def __init__(self, file_path, mask=None, minLineLength=30, opencl=False):
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
         self.HEIGHT = int(self.capture.stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.WIDTH = int(self.capture.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.FPS = self.capture.stream.get(cv2.CAP_PROP_FPS)
         self.source = None
-        self.no_opencl = no_opencl
+        self.opencl = opencl
         if self.FPS < 1.0:
             # 正しく入っていない場合があるので、その場合は15固定にする(ATOM Cam限定)。
             self.FPS = 15
@@ -481,10 +482,10 @@ class DetectMeteor():
             self.mask = cv2.imread(mask)
         else:
             # 時刻表示部分のマスクを作成
-            if no_opencl:
-                zero = cv2.zeros((1080, 1920, 3), np.uint8)
+            if opencl:
+                zero = cv2.UMat((1080, 1920), cv2.CV_8UC3)
             else:
-                zero = cv2.UMat(1080, 1920, cv2.CV_8UC3)
+                zero = np.zeros((1080, 1920, 3), np.uint8)
             if self.source == "Subaru":
                 # mask SUBRU/Mauna-Kea timestamp
                 self.mask = cv2.rectangle(
@@ -532,7 +533,7 @@ class DetectMeteor():
                 try:
                     if self.capture.more():
                         frame = self.capture.read()
-                        if not self.no_opencl:
+                        if self.opencl:
                             frame = cv2.UMat(frame)
                     else:
                         continue
@@ -613,12 +614,12 @@ def streaming_thread(args):
         # URL指定の場合。
         url = args.url
     else:
-        # defaultはATOMCamのURLとする。
+        # defaultはATOMCamのURL(atomcam_tools版)とする。
         if args.atomcam_tools:
             # atomcam_toolsのRTSPを使う場合。
             url = f"rtsp://{ATOM_CAM_IP}:8554/unicast"
         else:
-            # メーカ指定のRTSPを使う場合
+            # メーカ公式のRTSPを使う場合
             url = f"rtsp://6199:4003@{ATOM_CAM_IP}/live"
 
     # print(url)
@@ -674,8 +675,8 @@ if __name__ == '__main__':
     parser.add_argument('--min_length', type=int, default=30,
                         help="minLineLength of HoghLinesP")
 
-    parser.add_argument('--no_opencl',
-                        action='store_true', help="don't youse OpenCL (default: False)")
+    parser.add_argument('--opencl',
+                        action='store_true', help="Use OpenCL (default: False)")
 
     # ffmpeg関係の警告がウザいので抑制する。
     parser.add_argument('-s', '--suppress-warning',
