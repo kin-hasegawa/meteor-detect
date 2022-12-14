@@ -189,8 +189,9 @@ def diff(img_list, mask):
     """
     diff_list = []
     for img1, img2 in zip(img_list[:-2], img_list[1:]):
-        img1 = cv2.bitwise_or(img1, mask)
-        img2 = cv2.bitwise_or(img2, mask)
+        if mask is not None:
+            img1 = cv2.bitwise_or(img1, mask)
+            img2 = cv2.bitwise_or(img2, mask)
         diff_list.append(cv2.subtract(img1, img2))
 
     return diff_list
