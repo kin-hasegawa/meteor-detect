@@ -674,7 +674,7 @@ ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとフ�
 
 Automatic meteor detection from movie files (MP4) and streaming devices (RTSP)
 
-The `meteor-detect` is originally developed for the specific IP Camera - Atom Cam 2 originally. However, it should be no technical limitations with making it works with other webcams as long as RTSP works. This script continuously stacks an image for a one-second duration and detects line patterns. When detected, it saves a stacked JPG image and an MP4 file in the specified directory.
+The `meteor-detect` is originally developed for the specific IP Camera - Atom Cam 2. However, it should be no technical limitations with making it works with other webcams as long as RTSP works. This script continuously stacks an image for a one-second duration and detects line patterns. When detected, it saves a stacked JPG image and an MP4 file in the specified directory.
 
 No guarantee, no support. Please forgive that this software was developed for my own research purposes and that specifications will be changed without notice.
 
