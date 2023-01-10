@@ -1,5 +1,5 @@
 # meteor-detect
-
+[Please scroll to the bottom of the page for the English version]<br>
 ATOMCamのストリーミング及びデータからの流星を自動検出<br>
 Automatic meteor detection from movie files(MP4) and streaming devices(RTSP)
 
@@ -669,3 +669,62 @@ ATOM Cam形式のディレクトリ構造の場合、ファイルのpathとフ�
   自動のみ 12個
 ```
 
+---
+# meteor-detect
+
+Automatic meteor detection from movie files (MP4) and streaming devices (RTSP)
+
+The `meteor-detect` is originally developed for the specific IP Camera - Atom Cam 2. However, it should be no technical limitations with making it works with other webcams as long as RTSP works. This script continuously stacks an image for a one-second duration and detects line patterns. When detected, it saves a stacked JPG image and an MP4 file in the specified directory.
+
+No guarantee, no support. Please forgive that this software was developed for my own research purposes and that specifications will be changed without notice.
+
+## Prerequisite
+
+* RTSP must be supported on Camera. Tested on ATOM Cam 2 and ATOM Cam Swing only.
+* Python 3.8 or latest
+* Tested on macOS 11, 12 (Intel/M1), Ubuntu 20.04LTS, Ubuntu 22.04LTS
+* May works on Anaconda3 on Windows 10
+* Verified works on Python 3.10/Ubuntu 22.05LTS as of 2022-08-13.
+
+The meteor-detect supports three input formats:
+* RTSP
+* Local MP4 data
+* YouTube Live Steaming
+
+## Installation guilde - RTSP use-case only
+
+```
+% git clone https://github.com/kin-hasegawa/meteor-detect.git
+% pip install ffmpeg
+% pip install opencv-python
+% pip install imutils
+% pip install youtube_dl
+% pip install pafy
+```
+
+The script doesn't use the last two modules for RTSP, but is required to install just to avoid a runtime error.
+
+## Execution - RTSP use-case only
+
+Please check a help message first.
+```
+cd meteor-detect
+./atomcam.py --help
+```
+
+To start detection, please put the parameters according to your environment. For instance,
+```
+# ./atomcam.py -o detect/2022-08-15 -u rtsp://uuu:pass@192.168.100.XX/live -t 0400 -e 2
+```
+
+In this case, the script performs a continuous two-second image stacking, and try finding a square pattern by cv2 HoughLinesP function.
+
+* `-o detect/2022-08-15` Specify an output directory
+* `-u rtsp://...` RTSP source URL
+* `-t 0400` A script is terminated at 4 am local time
+* `-e 2` Change a stack length to 2 sec instead of 1 sec (default)
+* `-n` Do not open an RTSP movie monitoring window
+
+### Caveat for non-ATOMCam user
+
+If your webcam overlays some text (e.g., date/time string) on a video, it can be a potential issue for moving detection. Since AtomCam puts it on the bottom right corner, the script masks the area in the default to avoid a miss detection. If your webcam puts it on other locations, you will need to create a mask and specify it with `--mask` option.
