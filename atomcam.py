@@ -221,6 +221,7 @@ class AtomCam:
         self.capture = None
         self.source = None
         self.opencl = opencl
+        self.last = False
 
         # 入力ソースの判定
         if "youtube" in video_url:
@@ -313,6 +314,7 @@ class AtomCam:
             url = best.url
         else:
             url = self.url
+            self.last = False
 
         self.capture = cv2.VideoCapture(url)
 
@@ -325,6 +327,7 @@ class AtomCam:
         """
         print("# threading version started.")
         frame_count = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT))
+
         self._running = True
         while(True):
             try:
@@ -339,6 +342,7 @@ class AtomCam:
                         current_pos = int(self.capture.get(
                             cv2.CAP_PROP_POS_FRAMES))
                         if current_pos >= frame_count:
+                            self.last = True
                             break
                 else:
                     self.connect()
@@ -366,7 +370,7 @@ class AtomCam:
                     self._running = False
                     return
 
-                if self.mp4 and self.image_queue.empty():
+                if self.mp4 and self.last and self.image_queue.empty():
                     self._running = False
                     return
 
