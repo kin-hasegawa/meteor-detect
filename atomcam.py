@@ -27,7 +27,8 @@ sys.stdout.reconfigure(line_buffering=True)
 
 # 自分の環境のATOM CamのIPに修正してください。
 ATOM_CAM_IP = os.environ.get("ATOM_CAM_IP", "192.168.2.110")
-ATOM_CAM_RTSP = "rtsp://{}:8554/unicast".format(ATOM_CAM_IP)
+#ATOM_CAM_RTSP = "rtsp://{}:8554/unicast".format(ATOM_CAM_IP)
+ATOM_CAM_RTSP = f"rtsp://{ATOM_CAM_IP}:8080/video0_unicast"
 
 # atomcam_toolsでのデフォルトのユーザアカウントなので、自分の環境に合わせて変更してください。
 ATOM_CAM_USER = "root"
@@ -45,6 +46,8 @@ YouTube = {
 class AtomTelnet():
     '''
     ATOM Camにtelnet接続し、コマンドを実行するクラス
+      - atomcam_toolsの最新版ではtelnetは使えなくなったのでこのクラスは不要。
+      - AtomSSH()に変更すべき。
     '''
 
     def __init__(self, ip_address=ATOM_CAM_IP):
@@ -628,7 +631,9 @@ def streaming_thread(args):
         # defaultはATOMCamのURL(atomcam_tools版)とする。
         if args.atomcam_tools:
             # atomcam_toolsのRTSPを使う場合。
-            url = f"rtsp://{ATOM_CAM_IP}:8554/unicast"
+            # url = f"rtsp://{ATOM_CAM_IP}:8554/unicast"
+            # 最新版 atomcam_toolsのRTSPを使う場合。
+            url = f"rtsp://{ATOM_CAM_IP}:8080/video0_unicast"
         else:
             # メーカ公式のRTSPを使う場合
             url = f"rtsp://6199:4003@{ATOM_CAM_IP}/live"
