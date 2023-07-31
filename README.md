@@ -255,16 +255,17 @@ ATOM Cam以外のカメラを使う場合は、別途マスク画像を用意す
 
 
 ```
-def detect(img, min_length):
+def detect(img, min_length, sigma=0):
     """画像上の線状のパターンを流星として検出する。
     Args:
       img: 検出対象となる画像
       min_length: HoughLinesPで検出する最短長(ピクセル)
+      igma: sigma parameter of GaussinaBlur()
     Returns:
       検出結果
     """
     blur_size = (5, 5)
-    blur = cv2.GaussianBlur(img, blur_size, 0)
+    blur = cv2.GaussianBlur(img, blur_size, sigma)
     canny = cv2.Canny(blur, 100, 200, 3)
 
     # The Hough-transform algo:
@@ -302,12 +303,11 @@ ATOM_CAM_PASS = "atomcam2"
 以下は、コマンドオプションの一覧。
 
 ```
-% ./atomcam.py --help
-usage: atomcam.py [-u URL] [-n] [-d DATE] [-h HOUR] [-m MINUTE] [-i INPUT] [-e EXPOSURE]
-                  [-o OUTPUT] [-t TO] [--mask MASK] [--min_length MIN_LENGTH] [--opencl] [-s]
-                  [--thread] [--help] [--atomcam_tools] [-c]
+usage: atomcam.py [-u URL] [-n] [-d DATE] [-h HOUR] [-m MINUTE] [-i INPUT] [-e EXPOSURE] [-o OUTPUT] [-t TO]
+                  [--mask MASK] [--min_length MIN_LENGTH] [--sigma SIGMA] [--opencl] [-s] [--thread] [--help]
+                  [--atomcam_tools] [-c]
 
-optional arguments:
+options:
   -u URL, --url URL     RTSPのURL、または動画(MP4)ファイル
   -n, --no_window       画面非表示
   -d DATE, --date DATE  Date in 'yyyymmdd' format (JST)
@@ -324,13 +324,14 @@ optional arguments:
   --mask MASK           mask image
   --min_length MIN_LENGTH
                         minLineLength of HoghLinesP
+  --sigma SIGMA         sigma parameter of GaussianBlur()
   --opencl              Use OpenCL (default: False)
   -s, --suppress-warning
                         suppress warning messages
   --thread              スレッド版(default)
-  --atomcam_tools       atomcam_toolsを使う場合に指定する
-  -c, --clock           カメラの時刻チェック
   --help                show this help message and exit
+  --atomcam_tools       atomcam_toolsを使う場合に指定する。
+  -c, --clock           カメラの時刻チェック(atomcam_tools必要)
 ```
 
 `--thread`オプションは現在デフォルトとして設定しているので不要になるが、前のバージョンとの関係で形だけ残してある。
