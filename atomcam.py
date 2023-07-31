@@ -200,16 +200,17 @@ def diff(img_list, mask):
     return diff_list
 
 
-def detect(img, min_length):
+def detect(img, min_length, sigma=0):
     """画像上の線状のパターンを流星として検出する。
     Args:
       img: 検出対象となる画像
       min_length: HoughLinesPで検出する最短長(ピクセル)
+      igma: sigma parameter of GaussinaBlur()
     Returns:
       検出結果
     """
     blur_size = (5, 5)
-    blur = cv2.GaussianBlur(img, blur_size, 0)
+    blur = cv2.GaussianBlur(img, blur_size, sigma)
     canny = cv2.Canny(blur, 100, 200, 3)
 
     # The Hough-transform algo:
@@ -468,12 +469,13 @@ class DetectMeteor():
     親クラスから継承したものにしたい。
     """
 
-    def __init__(self, file_path, mask=None, minLineLength=30, opencl=False):
+    def __init__(self, file_path, mask=None, minLineLength=30, opencl=False, sigma=0):
         # video device url or movie file path
         self.capture = FileVideoStream(file_path).start()
         self.HEIGHT = int(self.capture.stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.WIDTH = int(self.capture.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.FPS = self.capture.stream.get(cv2.CAP_PROP_FPS)
+        self.sigma = sigma
         self.source = None
         self.opencl = opencl
         if self.FPS < 1.0:
@@ -565,7 +567,7 @@ class DetectMeteor():
             if number > 2:
                 try:
                     diff_img = brightest(diff(img_list, self.mask))
-                    if detect(diff_img, self.min_length) is not None:
+                    if detect(diff_img, self.min_length, self.sigma) is not None:
                         obs_time = "{}:{}".format(
                             self.obs_time, str(count*exposure).zfill(2))
                         print('{}  A possible meteor was detected.'.format(obs_time))
@@ -610,7 +612,7 @@ def detect_meteor(args):
         # 1分間の単体のmp4ファイルの処理
         print("#", file_path)
         detecter = DetectMeteor(
-            str(file_path), mask=args.mask, minLineLength=args.min_length)
+            str(file_path), mask=args.mask, minLineLength=args.min_length, sigma=args.sigma)
         detecter.meteor(args.exposure, args.output)
     else:
         # 1時間内の一括処理
@@ -690,6 +692,9 @@ if __name__ == '__main__':
     parser.add_argument('--mask', default=None, help="mask image")
     parser.add_argument('--min_length', type=int, default=30,
                         help="minLineLength of HoghLinesP")
+
+    parser.add_argument('--sigma', type=int, default=0,
+                        help="sigma parameter of GaussianBlur()")
 
     parser.add_argument('--opencl',
                         action='store_true', help="Use OpenCL (default: False)")
