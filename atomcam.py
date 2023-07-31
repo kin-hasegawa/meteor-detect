@@ -618,7 +618,9 @@ def detect_meteor(args):
         # 1時間内の一括処理
         for file_path in sorted(Path(data_dir).glob("[0-9][0-9].mp4")):
             print('#', Path(file_path))
-            detecter = DetectMeteor(str(file_path), args.mask)
+            detecter = DetectMeteor(
+                str(file_path), args.mask, minLineLength=args.min_length, sigma=args.sigma
+            )
             detecter.meteor(args.exposure, args.output)
 
 
@@ -693,7 +695,7 @@ if __name__ == '__main__':
     parser.add_argument('--min_length', type=int, default=30,
                         help="minLineLength of HoghLinesP")
 
-    parser.add_argument('--sigma', type=int, default=0,
+    parser.add_argument('--sigma', type=float, default=0,
                         help="sigma parameter of GaussianBlur()")
 
     parser.add_argument('--opencl',
