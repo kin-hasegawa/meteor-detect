@@ -219,7 +219,7 @@ def detect(img, min_length, sigma=0):
 
 class AtomCam:
     def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600",
-                 clock=False, mask=None, minLineLength=30, opencl=False):
+                 clock=False, mask=None, minLineLength=30, opencl=False, sigma=0):
         self._running = False
         # video device url or movie file path
         self.capture = None
@@ -642,7 +642,7 @@ def streaming_thread(args):
 
     # print(url)
     atom = AtomCam(url, args.output, args.to, args.clock,
-                   args.mask, args.min_length)
+                   args.mask, args.min_length, args.sigma)
     if not atom.capture.isOpened():
         return
 
