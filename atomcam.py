@@ -226,6 +226,9 @@ class AtomCam:
         self.source = None
         self.opencl = opencl
         self.last = False
+        self.sigma = sigma
+
+        # print(self.opencl, self.sigma)
 
         # 入力ソースの判定
         if "youtube" in video_url:
@@ -244,6 +247,7 @@ class AtomCam:
         self.FPS = min(int(self.capture.get(cv2.CAP_PROP_FPS)), 60)
         self.HEIGHT = int(self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.WIDTH = int(self.capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+        print(f"# FPS={self.FPS}, WIDKTH={self.WIDTH}, HEIGHT={self.HEIGHT}")
 
         # 出力先ディレクトリ
         if output:
@@ -425,7 +429,7 @@ class AtomCam:
                     cv2.imwrite(path_name, mean_img)
                     self.now = now
 
-                detected = detect(diff_img, self.min_length)
+                detected = detect(diff_img, self.min_length, self.sigma)
                 if detected is not None:
                     '''
                     for meteor_candidate in detected:
@@ -639,12 +643,12 @@ def streaming_thread(args):
             # 最新版 atomcam_toolsのRTSPを使う場合。
             url = f"rtsp://{ATOM_CAM_IP}:8080/video0_unicast"
         else:
-            # メーカ公式のRTSPを使う場合
+            # メーカ公式のRTSPを使う場合(ポート番号はATOMCamaアプリで確認)
             url = f"rtsp://6199:4003@{ATOM_CAM_IP}/live"
 
     # print(url)
     atom = AtomCam(url, args.output, args.to, args.clock,
-                   args.mask, args.min_length, args.sigma)
+                   args.mask, args.min_length, args.opencl, args.sigma)
     if not atom.capture.isOpened():
         return
 
