@@ -317,7 +317,7 @@ class AtomCam:
 
         if self.source in YouTube.values():
             # YouTubeからのストリーミング入力
-            video = pafy.new(self.url)
+            video = pafy.new(self.url, ydl_opts={'nocheckcertificate': True})
             best = video.getbest(preftype="mp4")
             url = best.url
         else:
