@@ -247,7 +247,7 @@ class AtomCam:
         self.FPS = min(int(self.capture.get(cv2.CAP_PROP_FPS)), 60)
         self.HEIGHT = int(self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.WIDTH = int(self.capture.get(cv2.CAP_PROP_FRAME_WIDTH))
-        print(f"# FPS={self.FPS}, WIDKTH={self.WIDTH}, HEIGHT={self.HEIGHT}")
+        print(f"# FPS={self.FPS}, WIDTH={self.WIDTH}, HEIGHT={self.HEIGHT}")
 
         # 出力先ディレクトリ
         if output:
