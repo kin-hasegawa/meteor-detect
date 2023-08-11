@@ -10,11 +10,15 @@ import numpy as np
 import cv2
 from imutils.video import FileVideoStream
 import telnetlib
+'''
 try:
     import apafy as pafy
+    # apafyはサポートされていないのでpafyにする。
 except Exception:
     # pafyを使う場合はpacheが必要。
     import pafy
+'''
+import pafy
 
 # マルチスレッド関係
 import threading
@@ -36,8 +40,8 @@ ATOM_CAM_PASS = "atomcam2"
 
 # YouTube ライブ配信ソース (変更になった場合は要修正)
 YouTube = {
+    "chlt1IAou8Y": "Subaru",
     "SDRS6JQulmI": "Kiso",
-    "_8rp1p_tWlc": "Subaru",
     "ylSiGa_U1UE": "Fukushima",
     "any_youtube": "YouTube"
 }
@@ -317,9 +321,25 @@ class AtomCam:
 
         if self.source in YouTube.values():
             # YouTubeからのストリーミング入力
-            video = pafy.new(self.url, ydl_opts={'nocheckcertificate': True})
-            best = video.getbest(preftype="mp4")
-            url = best.url
+            print(f"# connecting to YouTube: {self.url}")
+
+            n = 1
+            while True:
+                try:
+                    video = pafy.new(self.url, ydl_opts={'nocheckcertificate': True})
+                    # video = pafy.new(self.url)
+                    best = video.getbest(preftype="mp4")
+                    url = best.url
+                except Exception as e:
+                    print(str(e))
+                    traceback.print_exc(file=sys.stdout)
+                    sys.exit()
+
+                print(f"# retrying to connect to YouTube: {n}")
+                n += 1
+                if n >= 100:
+                    sys.exit()                    
+                time.sleep(10)
         else:
             url = self.url
             self.last = False
@@ -417,6 +437,10 @@ class AtomCam:
             # 差分間で比較明合成を取るために最低3フレームが必要。
             # 画像のコンポジット(単純スタック)
             diff_img = brightest(diff(img_list, self.mask))
+
+            # 差分画像確認(debug用)
+            # cv2.imshow(f'{self.source}', diff_img)
+
             try:
                 # if True:
                 if now.hour != self.now.hour:
@@ -431,6 +455,7 @@ class AtomCam:
 
                 detected = detect(diff_img, self.min_length, self.sigma)
                 if detected is not None:
+                    # print(len(detected))                    
                     '''
                     for meteor_candidate in detected:
                         print('{} {} A possible meteor was detected.'.format(obs_time, meteor_candidate))
