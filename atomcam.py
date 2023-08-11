@@ -330,6 +330,7 @@ class AtomCam:
                     # video = pafy.new(self.url)
                     best = video.getbest(preftype="mp4")
                     url = best.url
+                    break
                 except Exception as e:
                     print(str(e))
                     traceback.print_exc(file=sys.stdout)
