@@ -330,7 +330,10 @@ class AtomCam:
                     # video = pafy.new(self.url)
                     # best = video.getbest(preftype="mp4")
                     # url = best.url
-                    url = video.videostreams[23].url
+                    # take 1920x1080
+                    for v in video.videostreams:
+                        if str(v) == "video:mp4@1920x1080":
+                            url = v.url
                     break
                 except Exception as e:
                     print(str(e))
