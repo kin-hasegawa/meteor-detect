@@ -328,8 +328,9 @@ class AtomCam:
                 try:
                     video = pafy.new(self.url, ydl_opts={'nocheckcertificate': True})
                     # video = pafy.new(self.url)
-                    best = video.getbest(preftype="mp4")
-                    url = best.url
+                    # best = video.getbest(preftype="mp4")
+                    # url = best.url
+                    url = video.videostreams[23].url
                     break
                 except Exception as e:
                     print(str(e))
