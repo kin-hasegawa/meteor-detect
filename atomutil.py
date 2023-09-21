@@ -5,7 +5,7 @@ import argparse
 import cv2
 
 from atomcam import DetectMeteor, ATOM_CAM_IP, ATOM_CAM_USER, ATOM_CAM_PASS
-from atomcam import check_clock, set_clock
+from atomcam import check_clock, set_clock , AtomSsh , AtomTelnet
 
 
 def make_ftpcmd(meteor_list, directory):
@@ -107,19 +107,26 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--clock', action='store_true', help='ATOM Camの時計のチェック')
     parser.add_argument('-s', '--set_clock', action='store_true', help='ATOM Camの時計をホスト側に合わせる')
     parser.add_argument('-F', '--fps', default=1, type=int, help='動画生成時のFPS')
+    parser.add_argument('-r', '--remote', default='telnet', choices=['telnet','ssh'], help='ATOM Cam へのリモート接続で使う client')
 
     args = parser.parse_args()
 
     # print("# {}".format(args.meteors))
 
+    shell = None
+    if(args.remote == 'ssh'):
+        shell = AtomSsh(ATOM_CAM_IP)
+    else:
+        shell = AtomTelnet(ATOM_CAM_IP)
+    
     if args.ftp:
         make_ftpcmd(args.meteors, args.directory)
     elif args.movie:
         make_movie(args.meteors, args.output, args.fps)
         #make_movie(args.meteors, args.output)
     elif args.clock:
-        check_clock()
+        check_clock(shell)
     elif args.set_clock:
-        set_clock()
+        set_clock(shell)
     else:
         detect_meteors(args.meteors)

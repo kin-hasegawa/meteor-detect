@@ -10,6 +10,7 @@ import numpy as np
 import cv2
 from imutils.video import FileVideoStream
 import telnetlib
+import paramiko
 try:
     import apafy as pafy
 except Exception:
@@ -29,6 +30,10 @@ sys.stdout.reconfigure(line_buffering=True)
 ATOM_CAM_IP = os.environ.get("ATOM_CAM_IP", "192.168.2.110")
 ATOM_CAM_RTSP = "rtsp://{}:8554/unicast".format(ATOM_CAM_IP)
 
+# atomcam2 に配置した公開鍵(authorized_keys)に対応する秘密鍵を指定してください。
+ATOM_CAM_KEYFILENAME = "C:\\Users\\UserName\\.ssh\\id_ed25519" # for Windows
+#ATOM_CAM_KEYFILENAME = "~/.ssh/id_ed25519" # for Linux
+
 # atomcam_toolsでのデフォルトのユーザアカウントなので、自分の環境に合わせて変更してください。
 ATOM_CAM_USER = "root"
 ATOM_CAM_PASS = "atomcam2"
@@ -41,6 +46,51 @@ YouTube = {
     "any_youtube": "YouTube"
 }
 
+
+class AtomSsh():
+    '''
+    ATOM Camにssh接続し、コマンドを実行するクラス
+    '''
+
+    def __init__(self, ip_address=ATOM_CAM_IP):
+        """AtomSshのコンストラクタ
+
+        Args:
+          ip_address: ssh接続先のIPアドレス
+        """
+        self.ssh = paramiko.SSHClient()
+        # 
+        self.ssh.load_system_host_keys()
+        self.ssh.connect(ATOM_CAM_IP,username=ATOM_CAM_USER,key_filename=ATOM_CAM_KEYFILENAME)
+
+    def exec(self, command):
+        """Ssh経由でコマンドを実行する。
+
+        Args:
+          command : 実行するコマンド(ex. "ls")
+
+        Returns:
+          コマンド実行結果文字列。1行のみ。
+        """
+        stdin, stdout, stderr = self.ssh.exec_command(command)
+        stdout_data = stdout.read()
+        stderr_data = stderr.read()
+        code = stdout.channel.recv_exit_status()
+        
+        # dateの実行に失敗したら例外を発生させてプログラムを終了させる
+        if(code == 0):
+            result = stdout_data.decode('utf-8').split("\n")[0]
+            return result
+        else:
+            print(stdout_data)
+            print(stderr_data)
+            raise Exception
+        
+    def exit(self):
+        self.ssh.close()
+
+    def __del__(self):
+        self.exit()
 
 class AtomTelnet():
     '''
@@ -81,18 +131,29 @@ class AtomTelnet():
         self.exit()
 
 
-def check_clock():
+def check_clock(shell):
     """ATOM Camのクロックとホスト側のクロックの比較。
+
+        Args:
+          shell: AtomTelnet か AtomSsh のインスタンス
     """
-    tn = AtomTelnet()
-    atom_date = tn.exec('date')
+    atom_date = shell.exec('date')
     '''
     utc_now = datetime.now(timezone.utc)
     atom_now = datetime.strptime(atom_date, "%a %b %d %H:%M:%S %Z %Y")
     atom_now = atom_now.replace(tzinfo=timezone.utc)
     '''
     jst_now = datetime.now()
-    atom_now = datetime.strptime(atom_date, "%a %b %d %H:%M:%S %Z %Y")
+    # atom camの時間をdatetime に変換
+    # このpythonスクリプトを実行している環境がJSTで無い場合、JST を %Z で置換する処理は失敗する
+    # 失敗したら手動で、JSTを取り除いて処理する
+    atom_now = ""
+    try:
+        atom_now = datetime.strptime(atom_date, '%a %b %d %H:%M:%S %Z %Y')
+    except ValueError:
+        if(atom_date.find(" JST") != -1):
+            tmp_date = atom_date.replace(" JST","")
+            atom_now = datetime.strptime(tmp_date, '%a %b %d %H:%M:%S %Y')
 
     dt = atom_now - jst_now
     if dt.days < 0:
@@ -105,15 +166,17 @@ def check_clock():
     print("# ATOM Cam - Host PC = {:.3f} sec".format(delta))
 
 
-def set_clock():
+def set_clock(shell):
     """ATOM Camのクロックとホスト側のクロックに合わせる。
+
+        Args:
+          shell: AtomTelnet か AtomSsh のインスタンス
     """
-    tn = AtomTelnet()
     # utc_now = datetime.now(timezone.utc)
     jst_now = datetime.now()
     set_command = 'date -s "{}"'.format(jst_now.strftime("%Y-%m-%d %H:%M:%S"))
     print(set_command)
-    tn.exec(set_command)
+    shell.exec(set_command)
 
 
 def composite(list_images):
@@ -215,7 +278,7 @@ def detect(img, min_length):
 
 class AtomCam:
     def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600",
-                 clock=False, mask=None, minLineLength=30, opencl=False):
+                 clock=False, mask=None, minLineLength=30, opencl=False, client=None):
         self._running = False
         # video device url or movie file path
         self.capture = None
@@ -264,7 +327,12 @@ class AtomCam:
 
         if self.source == "ATOMCam" and clock:
             # 内蔵時計のチェック
-            check_clock()
+            shell = None
+            if(client == 'ssh'):
+                shell = AtomSsh(ATOM_CAM_IP)
+            else:
+                shell = AtomTelnet(ATOM_CAM_IP)
+            check_clock(shell)
 
         if mask:
             # マスク画像指定の場合
@@ -631,7 +699,7 @@ def streaming_thread(args):
 
     # print(url)
     atom = AtomCam(url, args.output, args.to, args.clock,
-                   args.mask, args.min_length)
+                   args.mask, args.min_length, args.remote)
     if not atom.capture.isOpened():
         return
 
@@ -701,6 +769,8 @@ if __name__ == '__main__':
         '--atomcam_tools', action='store_true', help='atomcam_toolsを使う場合に指定する。')
     parser.add_argument(
         '-c', '--clock', action='store_true', help='カメラの時刻チェック(atomcam_tools必要)')
+    parser.add_argument(
+        '-r', '--remote', default='telnet', choices=['telnet','ssh'], help='ATOM Camへのリモート接続で使う client')
 
     args = parser.parse_args()
 
