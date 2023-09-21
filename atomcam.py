@@ -144,7 +144,16 @@ def check_clock(shell):
     atom_now = atom_now.replace(tzinfo=timezone.utc)
     '''
     jst_now = datetime.now()
-    atom_now = datetime.strptime(atom_date, "%a %b %d %H:%M:%S %Z %Y")
+    # atom camの時間をdatetime に変換
+    # このpythonスクリプトを実行している環境がJSTで無い場合、JST を %Z で置換する処理は失敗する
+    # 失敗したら手動で、JSTを取り除いて処理する
+    atom_now = ""
+    try:
+        atom_now = datetime.strptime(atom_date, '%a %b %d %H:%M:%S %Z %Y')
+    except ValueError:
+        if(atom_date.find(" JST") != -1):
+            tmp_date = atom_date.replace(" JST","")
+            atom_now = datetime.strptime(tmp_date, '%a %b %d %H:%M:%S %Y')
 
     dt = atom_now - jst_now
     if dt.days < 0:
