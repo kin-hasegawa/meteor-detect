@@ -106,6 +106,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', default='movie.mp4', help='動画ファイル名(.mp4)')
     parser.add_argument('-c', '--clock', action='store_true', help='ATOM Camの時計のチェック')
     parser.add_argument('-s', '--set_clock', action='store_true', help='ATOM Camの時計をホスト側に合わせる')
+    parser.add_argument('-F', '--fps', default=1, type=int, help='動画生成時のFPS')
     parser.add_argument('-r', '--remote', default='telnet', choices=['telnet','ssh'], help='ATOM Cam へのリモート接続で使う client')
 
     args = parser.parse_args()
