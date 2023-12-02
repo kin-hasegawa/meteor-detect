@@ -148,33 +148,30 @@ YouTube動画のURLを扱うために下記パッケージが必要になる。
 % pip install pafy
 ```
 
-当初 `youytube_dl` を使っていたが、メンテナンスされていないので、`yt-dlp` を使うようにしました。
+当初 `youytube_dl` を使っていたが、YoutTube側の仕様変更に対応するメンテナンスされていないので、`yt-dlp` を使うようにしました。
 また、以前使っていた `apafy` は最新のPythonのバージョンではインストールできなくなったので、`pafy` に戻しました。
 
-ただし、2022/03/08 現在、pipでインストールしたバージョンのpafyは一部修正しないと動作しない場合があるので注意
-(マウナケアでは修正なしで動作したが、木曽の方はエラーとなった)。
-YouTube動画を扱わない場合は修正しなくても良い。
+`pafy`もその後のYouTubeの仕様変更に対応していないために若干の修正が必要とな離ます。
 
-下記のGitHubからインストールするか、自分でパッチを当てる必要がある。
+ただし、YouTube動画を扱わない場合は修正は不要。
 
-[mps-youtube/pafy](https://github.com/mps-youtube/pafy/tree/develop/pafy)
-
-
-修正対象のファイルのpathです。
+修正対象のファイルのpathです(Python 3.10の場合)。
 
 ```
 <インストールディレクトリ>/lib/python3.10/site-packages/pafy/backend_youtube_dl.py
 ```
 
-インストール先はOSによって異なるので確認してください。
-修正箇所は下記の3箇所です。
+インストール先はOSやPythonの仮想環境(venv etc.)によって異なるので確認してください。
+修正箇所は下記の3箇所です(pafy==0.5.5の場合)。
 (この修正は自己責任でお願いします)
 
+- yt_dlpのimport
 ```
 #import youtube_dl  <-- youtube_dl の代わりに  yt_dlp を import する。
 import yt_dlp as youtube_dl
 ```
   
+- class YtdlPafy 内の修正
 ```
 class YtdlPafy(BasePafy): の中の
 
@@ -188,6 +185,8 @@ class YtdlPafy(BasePafy): の中の
         self._likes = self._ydl_info.get('like_count',0)
         self._dislikes = self._ydl_info.get('dislike_count',0)
 ```
+
+- class YtdlStream 内の修正
 
 ```
 class YtdlStream(BaseStream): の中の
