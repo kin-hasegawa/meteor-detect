@@ -144,11 +144,12 @@ numpyは opencv-pythonのインストール時に行われる。
 YouTube動画のURLを扱うために下記パッケージが必要になる。
 
 ```
-% pip install youtube_dl
-% pip install apafy
+% pip install yt-dlp
+% pip install pafy
 ```
 
-以下のソースへのパッチは`apafy`を使うので不要。
+当初 `youytube_dl` を使っていたが、メンテナンスされていないので、`yt-dlp` を使うようにしました。
+また、以前使っていた `apafy` は最新のPythonのバージョンではインストールできなくなったので、`pafy` に戻しました。
 
 ただし、2022/03/08 現在、pipでインストールしたバージョンのpafyは一部修正しないと動作しない場合があるので注意
 (マウナケアでは修正なしで動作したが、木曽の方はエラーとなった)。
@@ -158,42 +159,45 @@ YouTube動画を扱わない場合は修正しなくても良い。
 
 [mps-youtube/pafy](https://github.com/mps-youtube/pafy/tree/develop/pafy)
 
-パッチを当てる場合の詳細は下記を参照。
 
-[Get video info even if no likes/dislikes exist #288](https://github.com/mps-youtube/pafy/pull/288)
-
-pipでインストールすると最新の0.5.5になるのだが、なぜかバグ修正が反映されていない(2022/03/10現在)。
-`backend_youtube_dl.py` の53, 54行目を以下のように修正する必要がある。
-`backend_youtube_dl.py` の場所はインストール環境によって異なるので注意。
+修正対象のファイルのpathです。
 
 ```
-self._likes = self._ydl_info.get('like_count',0)
-self._dislikes = self._ydl_info.get('dislike_count',0)
+<インストールディレクトリ>/lib/python3.10/site-packages/pafy/backend_youtube_dl.py
 ```
 
-要修正ソースファイルは、venv環境の場合は以下のようになる。
+インストール先はOSによって異なるので確認してください。
+修正箇所は下記の3箇所です。
+(この修正は自己責任でお願いします)
 
 ```
-<venvディレクトリ>/lib/python3.9/site-packages/pafy/backend_youtube_dl.py
+#import youtube_dl  <-- youtube_dl の代わりに  yt_dlp を import する。
+import yt_dlp as youtube_dl
+```
+  
+```
+class YtdlPafy(BasePafy): の中の
+
+    def _fetch_basic(self):の中
+
+
+        #self._length = self._ydl_info['duration']     <-- コメントアウト
+
+        #self._likes = self._ydl_info['like_count']         <-- この2行をその下の2行に置き換え。
+        #self._dislikes = self._ydl_info['dislike_count']
+        self._likes = self._ydl_info.get('like_count',0)
+        self._dislikes = self._ydl_info.get('dislike_count',0)
 ```
 
-あるいは、pafyの修正版として、本家から分岐した apafy というのがあるので、これが使える。上記の不具合は修正されている。
+```
+class YtdlStream(BaseStream): の中の
+    def __init__(self, info, parent): の中、
 
-[apafy 0.5.6.1](https://pypi.org/project/apafy/)
-
-apafyをインストールして使う場合、atomcam.py の最初の方で、
+        #self._rawbitrate = info.get('abr', 0) * 1024  <-- この行を以下の2行に置き換え。 
+        abr = info.get('abr', 0) if info.get('abr',0) is not None else 0
+        self._rawbitrate = abr * 1024
 
 ```
-import pafy
-```
-
-の行を、
-
-```
-import apafy as pafy
-```
-
-とすれば良い。現在の実装は、apafyを最初に試し、ない場合に pafy を import するようにしてあるので、上記の修正は不要。
 
 ## 流星検出方法
 

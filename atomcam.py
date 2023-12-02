@@ -39,6 +39,8 @@ ATOM_CAM_USER = "root"
 ATOM_CAM_PASS = "atomcam2"
 
 # YouTube ライブ配信ソース (変更になった場合は要修正)
+#   [TODO] 頻繁にURLが変わるのでソースは引数で指定するようにする。
+#   --youtube [subarau, kiso, fukusima, etc.] 
 YouTube = {
     "chlt1IAou8Y": "Subaru",
     "SDRS6JQulmI": "Kiso",
@@ -223,7 +225,7 @@ def detect(img, min_length, sigma=0):
 
 class AtomCam:
     def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600",
-                 clock=False, mask=None, minLineLength=30, opencl=False, sigma=0):
+                 clock=False, mask=None, minLineLength=30, opencl=False, sigma=0, camera="atomcam"):
         self._running = False
         # video device url or movie file path
         self.capture = None
@@ -231,6 +233,7 @@ class AtomCam:
         self.opencl = opencl
         self.last = False
         self.sigma = sigma
+        self.camera = None
 
         # print(self.opencl, self.sigma)
 
@@ -241,8 +244,10 @@ class AtomCam:
             for source in YouTube.keys():
                 if source in video_url:
                     self.source = YouTube[source]
+        elif camera == 'atomcam':
+            self.source = 'ATOMCam'
         else:
-            self.source = "ATOMCam"
+            self.source = camera
 
         self.url = video_url
 
@@ -296,10 +301,12 @@ class AtomCam:
             elif self.source == "YouTube":
                 # no mask
                 self.mask = None
-            else:
+            elif self.source == "ATOMCam":
                 # mask ATOM Cam timestamp
                 self.mask = cv2.rectangle(
                     zero, (1390, 1010), (1920, 1080), (255, 255, 255), -1)
+            else:
+                self.mask = None
 
         self.min_length = minLineLength
         self.image_queue = queue.Queue(maxsize=200)
@@ -332,8 +339,10 @@ class AtomCam:
                     # url = best.url
                     # take 1920x1080
                     for v in video.videostreams:
+                        # print(v)
                         if str(v) == "video:mp4@1920x1080":
                             url = v.url
+                            break
                     break
                 except Exception as e:
                     print(str(e))
@@ -342,9 +351,9 @@ class AtomCam:
 
                 print(f"# retrying to connect to YouTube: {n}")
                 n += 1
-                if n >= 100:
+                if n >= 10:
                     sys.exit()                    
-                time.sleep(10)
+                time.sleep(2)
         else:
             url = self.url
             self.last = False
@@ -678,7 +687,7 @@ def streaming_thread(args):
 
     # print(url)
     atom = AtomCam(url, args.output, args.to, args.clock,
-                   args.mask, args.min_length, args.opencl, args.sigma)
+                   args.mask, args.min_length, args.opencl, args.sigma, args.camera)
     if not atom.capture.isOpened():
         return
 
@@ -751,6 +760,9 @@ if __name__ == '__main__':
         '--atomcam_tools', action='store_true', help='atomcam_toolsを使う場合に指定する。')
     parser.add_argument(
         '-c', '--clock', action='store_true', help='カメラの時刻チェック(atomcam_tools必要)')
+
+    parser.add_argument('--camera', default='atomcam',
+                        help="カメラ名(atomcam, maunakea, kiso, etc.)")
 
     args = parser.parse_args()
 
