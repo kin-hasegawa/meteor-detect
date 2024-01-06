@@ -604,7 +604,6 @@ class DetectMeteor():
 
             # 画像のコンポジット
             number = len(img_list)
-            count += 1
 
             # print(number, num_frames)
             if number > 2:
@@ -629,6 +628,8 @@ class DetectMeteor():
                 except Exception as e:
                     # print(traceback.format_exc(), file=sys.stderr)
                     print(e, file=sys.stderr)
+
+            count += 1
 
 
 def detect_meteor(args):
