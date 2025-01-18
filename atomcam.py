@@ -147,6 +147,11 @@ def composite(list_images):
 
 
 def median(list_images, opencl=False):
+    """
+    Args:
+        list_images:
+        opencl:
+    """
     img_list = []
     if opencl:
         for img in list_images:
@@ -159,6 +164,11 @@ def median(list_images, opencl=False):
 
 
 def average(list_images, opencl=False):
+    """
+    Args:
+        list_images:
+        opencl:
+    """
     img_list = []
     if opencl:
         for img in list_images:
