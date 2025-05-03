@@ -252,7 +252,7 @@ ATOM Cam以外のカメラを使う場合は、別途マスク画像を用意す
 
 画像からの流星の検出方法は下記のサイトで紹介されている方法を参考にした(R. Sparrius, 2020)。
 
-[D64.NL – METEOR DETECTING PROJECT](https://www.meteornews.net/2020/05/05/d64-nl-meteor-detecting-project/)
+[D64.NL – METEOR DETECTING PROJECT](https://www.emeteornews.net/2020/05/05/d64-nl-meteor-detecting-project/)
 
 まだ流星と飛行機、人工衛星の区別がまだ十分にできていない。また、東京の空ではS/Nが悪いため暗い流星は検出できない。
 
