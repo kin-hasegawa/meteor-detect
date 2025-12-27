@@ -9,7 +9,6 @@ import argparse
 import numpy as np
 import cv2
 from imutils.video import FileVideoStream
-import telnetlib
 '''
 try:
     import apafy as pafy
@@ -88,42 +87,6 @@ class AtomTelnet():
 
     def __del__(self):
         self.exit()
-
-
-def check_clock():
-    """ATOM Camのクロックとホスト側のクロックの比較。
-    """
-    tn = AtomTelnet()
-    atom_date = tn.exec('date')
-    '''
-    utc_now = datetime.now(timezone.utc)
-    atom_now = datetime.strptime(atom_date, "%a %b %d %H:%M:%S %Z %Y")
-    atom_now = atom_now.replace(tzinfo=timezone.utc)
-    '''
-    jst_now = datetime.now()
-    atom_now = datetime.strptime(atom_date, "%a %b %d %H:%M:%S %Z %Y")
-
-    dt = atom_now - jst_now
-    if dt.days < 0:
-        delta = -(86400.0 - (dt.seconds + dt.microseconds/1e6))
-    else:
-        delta = dt.seconds + dt.microseconds/1e6
-
-    print("# ATOM Cam =", atom_now)
-    print("# HOST PC  =", jst_now)
-    print("# ATOM Cam - Host PC = {:.3f} sec".format(delta))
-
-
-def set_clock():
-    """ATOM Camのクロックとホスト側のクロックに合わせる。
-    """
-    tn = AtomTelnet()
-    # utc_now = datetime.now(timezone.utc)
-    jst_now = datetime.now()
-    set_command = 'date -s "{}"'.format(jst_now.strftime("%Y-%m-%d %H:%M:%S"))
-    print(set_command)
-    tn.exec(set_command)
-
 
 def composite(list_images):
     """画像リストの合成(単純スタッキング)
@@ -235,7 +198,7 @@ def detect(img, min_length, sigma=0):
 
 class AtomCam:
     def __init__(self, video_url=ATOM_CAM_RTSP, output=None, end_time="0600",
-                 clock=False, mask=None, minLineLength=30, opencl=False, sigma=0, camera="atomcam"):
+                 mask=None, minLineLength=30, opencl=False, sigma=0, camera="atomcam"):
         self._running = False
         # video device url or movie file path
         self.capture = None
@@ -290,10 +253,6 @@ class AtomCam:
         print("# scheduled end_time = ", self.end_time)
         self.now = now
 
-        if self.source == "ATOMCam" and clock:
-            # 内蔵時計のチェック
-            check_clock()
-
         if mask:
             # マスク画像指定の場合
             self.mask = cv2.imread(mask)
@@ -343,7 +302,14 @@ class AtomCam:
             n = 1
             while True:
                 try:
-                    video = pafy.new(self.url, ydl_opts={'nocheckcertificate': True})
+                    options = {
+                        #'cookiesfrombrowser': ('chrome',),
+                        'cookiefile': 'cookies.txt',
+                        #'nocheckcertificate': True
+                    }
+                    video = pafy.new(self.url, ydl_opts=options)
+                    print(video.videostreams)
+                    print(video.best.url)
                     # video = pafy.new(self.url)
                     # best = video.getbest(preftype="mp4")
                     # url = best.url
@@ -697,7 +663,7 @@ def streaming_thread(args):
             url = f"rtsp://6199:4003@{ATOM_CAM_IP}/live"
 
     # print(url)
-    atom = AtomCam(url, args.output, args.to, args.clock,
+    atom = AtomCam(url, args.output, args.to,
                    args.mask, args.min_length, args.opencl, args.sigma, args.camera)
     if not atom.capture.isOpened():
         return
@@ -769,8 +735,6 @@ if __name__ == '__main__':
     # 以下のオプションはatomcam_toolsを必要とする。
     parser.add_argument(
         '--atomcam_tools', action='store_true', help='atomcam_toolsを使う場合に指定する。')
-    parser.add_argument(
-        '-c', '--clock', action='store_true', help='カメラの時刻チェック(atomcam_tools必要)')
 
     parser.add_argument('--camera', default='atomcam',
                         help="カメラ名(atomcam, maunakea, kiso, etc.)")
