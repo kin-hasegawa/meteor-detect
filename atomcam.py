@@ -9,6 +9,7 @@ import argparse
 import numpy as np
 import cv2
 from imutils.video import FileVideoStream
+import yt_dlp
 '''
 try:
     import apafy as pafy
@@ -303,22 +304,17 @@ class AtomCam:
             while True:
                 try:
                     options = {
-                        #'cookiesfrombrowser': ('chrome',),
-                        'cookiefile': 'cookies.txt',
-                        #'nocheckcertificate': True
+                       'cookiefile': 'cookies.txt',
+                       'quiet': True,
+                       'no_warnings': True, # 警告メッセージを非表示にする
                     }
-                    video = pafy.new(self.url, ydl_opts=options)
-                    print(video.videostreams)
-                    print(video.best.url)
-                    # video = pafy.new(self.url)
-                    # best = video.getbest(preftype="mp4")
-                    # url = best.url
-                    # take 1920x1080
-                    for v in video.videostreams:
-                        # print(v)
-                        if str(v) == "video:mp4@1920x1080":
-                            url = v.url
-                            break
+                    with yt_dlp.YoutubeDL(options) as ydl:
+                        info = ydl.extract_info(self.url, download=False)
+                        formats = info.get('formats', [])
+
+                        # 1080p, mp4, 映像あり の条件で検索
+                        url = next((f['url'] for f in formats 
+                                    if f.get('width') == 1920 and f.get('ext') == 'mp4' and f.get('vcodec') != 'none'), None)
                     break
                 except Exception as e:
                     print(str(e))
