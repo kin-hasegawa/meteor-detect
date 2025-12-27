@@ -5,7 +5,6 @@ import argparse
 import cv2
 
 from atomcam import DetectMeteor, ATOM_CAM_IP, ATOM_CAM_USER, ATOM_CAM_PASS
-from atomcam import check_clock, set_clock
 
 
 def make_ftpcmd(meteor_list, directory):
@@ -117,9 +116,5 @@ if __name__ == '__main__':
     elif args.movie:
         make_movie(args.meteors, args.output, args.fps)
         #make_movie(args.meteors, args.output)
-    elif args.clock:
-        check_clock()
-    elif args.set_clock:
-        set_clock()
     else:
         detect_meteors(args.meteors)
